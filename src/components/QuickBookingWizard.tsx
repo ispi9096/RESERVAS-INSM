@@ -397,15 +397,33 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
 
   const currentLevel = useMemo(() => detectLevelFromCourse(course), [course]);
 
+  // Ensure subject is always valid when availableSubjects change
+  useEffect(() => {
+    if (availableSubjects.length > 0 && !availableSubjects.includes(subject)) {
+      setSubject(availableSubjects[0]);
+    }
+  }, [availableSubjects, subject]);
+
   // Handle Course Change with Auto-Reset for Subject
   const handleCourseChange = (newCourse: string) => {
     setCourse(newCourse);
     setSubjectSearch('');
     const newSubjects = getSubjectsForCourse(newCourse);
-    if (!newSubjects.includes(subject)) {
-      setSubject(newSubjects[0] || '');
+    if (newSubjects.length > 0) {
+      setSubject(newSubjects[0]);
     }
   };
+
+  // Ensure current subject is always in displaySubjects so select HTML value matches
+  const displaySubjects = useMemo(() => {
+    const filtered = availableSubjects.filter(
+      (s) => !subjectSearch || s.toLowerCase().includes(subjectSearch.toLowerCase())
+    );
+    if (subject && !filtered.includes(subject)) {
+      return [subject, ...filtered];
+    }
+    return filtered.length > 0 ? filtered : availableSubjects;
+  }, [availableSubjects, subjectSearch, subject]);
 
   // Live Validation for all selected time slots
   const selectedSlotValidations = useMemo(() => {
@@ -433,6 +451,15 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
     return selectedSlotValidations.every((item) => item.status.isAvailable);
   }, [selectedTimeSlotIds, selectedSlotValidations]);
 
+  const isFormValid = useMemo(() => {
+    return (
+      selectedTimeSlotIds.length > 0 &&
+      isSelectionValid &&
+      Boolean(course) &&
+      Boolean(subject && subject.trim())
+    );
+  }, [selectedTimeSlotIds.length, isSelectionValid, course, subject]);
+
   const invalidSelectedSlots = useMemo(() => {
     return selectedSlotValidations.filter((item) => !item.status.isAvailable);
   }, [selectedSlotValidations]);
@@ -445,7 +472,10 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   // Handle Submit (Create reservation for each selected time slot)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isSelectionValid) return;
+    if (selectedTimeSlotIds.length === 0 || !isSelectionValid) return;
+
+    const finalSubject = subject.trim() || availableSubjects[0] || 'Clase especial';
+    if (!course || !finalSubject) return;
 
     const sortedValidations = [...selectedSlotValidations].sort((a, b) => a.slotId - b.slotId);
     const userId = getOrCreateUserId();
@@ -457,7 +487,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
         dayOfWeek: selectedDayInfo.dayOfWeek,
         timeSlotId: item.slotId,
         course,
-        subject: subject.trim() || 'Clase especial',
+        subject: finalSubject,
         notes: notes.trim(),
         createdBy: userId,
         userId: userId
@@ -1275,13 +1305,11 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                   isLight ? 'bg-white border-emerald-500 text-slate-900' : 'bg-slate-800 border-emerald-500/80 text-slate-100'
                 }`}
               >
-                {availableSubjects
-                  .filter(s => !subjectSearch || s.toLowerCase().includes(subjectSearch.toLowerCase()))
-                  .map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
+                {displaySubjects.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
               </select>
 
               {/* Matching Result Tag Chips */}
@@ -1347,9 +1375,14 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
 
             <button
               type="submit"
-              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-base flex items-center gap-3 shadow-xl shadow-emerald-900/50 transition-all active:scale-95"
+              disabled={!isFormValid}
+              className={`px-8 py-4 rounded-2xl font-black text-base flex items-center gap-3 shadow-xl transition-all ${
+                isFormValid
+                  ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white shadow-emerald-900/50 cursor-pointer active:scale-95'
+                  : 'bg-slate-300 text-slate-500 border border-slate-400/30 dark:bg-slate-800 dark:text-slate-500 dark:border-slate-700 cursor-not-allowed opacity-60 shadow-none'
+              }`}
             >
-              <CheckCircle2 className="w-6 h-6 text-yellow-300" />
+              <CheckCircle2 className={`w-6 h-6 ${isFormValid ? 'text-yellow-300' : 'text-slate-400'}`} />
               <span>
                 {selectedTimeSlotIds.length > 1 
                   ? `Confirmar las ${selectedTimeSlotIds.length} Reservas` 

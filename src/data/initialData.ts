@@ -15,7 +15,7 @@ export const INITIAL_RESOURCES: Resource[] = [
   {
     id: 'proyector_2',
     category: 'proyector',
-    name: 'Proyector 2 (Móvil con Parlante)',
+    name: 'Proyector 2',
     code: 'PROY-02',
     description: 'Proyector con entrada VGA y adaptador HDMI (normal).',
     location: 'Gabinete Técnico (Pedir en Biblioteca)',
