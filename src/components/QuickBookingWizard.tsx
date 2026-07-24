@@ -25,6 +25,7 @@ import { INITIAL_RESOURCES, TIME_SLOTS, INSTITUTIONAL_COURSES, getSubjectsForCou
 import { getWeekDays, formatFriendlyDate, isPastDate } from '../utils/dateUtils';
 import { validateResourceAvailability } from '../utils/validation';
 import { getOrCreateUserId } from '../utils/userUtils';
+import { fetchLiveReservations } from '../lib/firebase';
 
 interface QuickBookingWizardProps {
   reservations: Reservation[];
@@ -481,9 +482,49 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   }, [selectedResourceId]);
 
   // Handle Submit (Create reservation for each selected time slot)
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedTimeSlotIds.length === 0 || !isSelectionValid) return;
+    if (selectedTimeSlotIds.length === 0) return;
+
+    // Fetch live Firestore reservations directly from server to verify freshness
+    const liveReservations = await fetchLiveReservations();
+    const combinedReservationsMap = new Map<string, Reservation>();
+    (reservations || []).forEach((r) => combinedReservationsMap.set(r.id, r));
+    liveReservations.forEach((r) => combinedReservationsMap.set(r.id, r));
+    const latestReservationsList = Array.from(combinedReservationsMap.values());
+
+    // Strict Realtime Availability Re-check before confirming reservation
+    const unavailableSlots: { slotId: number; label: string; reason: string }[] = [];
+
+    for (const slotId of selectedTimeSlotIds) {
+      const slot = TIME_SLOTS.find((s) => s.id === slotId);
+      const liveStatus = validateResourceAvailability(
+        selectedResourceId,
+        selectedDateStr,
+        selectedDayInfo.dayOfWeek,
+        slotId,
+        latestReservationsList,
+        fixedSchedules
+      );
+
+      if (!liveStatus.isAvailable) {
+        unavailableSlots.push({
+          slotId,
+          label: slot ? slot.label : `Módulo ${slotId}`,
+          reason: liveStatus.message || `Ocupado por ${liveStatus.subject || 'otro docente'} (${liveStatus.course || ''})`
+        });
+      }
+    }
+
+    if (unavailableSlots.length > 0) {
+      const details = unavailableSlots.map((s) => `• ${s.label}: ${s.reason}`).join('\n');
+      alert(`⚠️ NO ES POSIBLE CONFIRMAR LA RESERVA\n\nUno o más módulos seleccionados han sido ocupados en la nube por otro docente (ej. Juan o Berrino):\n\n${details}\n\nLa grilla se ha actualizado con los datos reales de Firestore. Por favor, revisa la disponibilidad.`);
+      
+      // Remove unavailable slots from current selection
+      const unavailableIds = new Set(unavailableSlots.map((s) => s.slotId));
+      setSelectedTimeSlotIds((prev) => prev.filter((id) => !unavailableIds.has(id)));
+      return;
+    }
 
     const finalSubject = subject.trim() || availableSubjects[0] || 'Clase especial';
     const finalTeacher = teacherName.trim();
@@ -494,6 +535,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
     localStorage.setItem('app_teacher_identity', finalTeacher);
     localStorage.setItem('app_creator_id', finalTeacher);
     localStorage.setItem('app_user_id', finalTeacher);
+    window.dispatchEvent(new Event('app_teacher_identity_changed'));
 
     const sortedValidations = [...selectedSlotValidations].sort((a, b) => a.slotId - b.slotId);
 

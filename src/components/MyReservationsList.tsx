@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Trash2, 
@@ -15,7 +15,7 @@ import {
 import { Reservation } from '../types';
 import { INITIAL_RESOURCES, TIME_SLOTS } from '../data/initialData';
 import { formatFriendlyDate } from '../utils/dateUtils';
-import { getOrCreateUserId } from '../utils/userUtils';
+import { getOrCreateUserId, isReservationMine } from '../utils/userUtils';
 
 interface MyReservationsListProps {
   reservations: Reservation[];
@@ -51,6 +51,26 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
     );
   });
 
+  useEffect(() => {
+    const syncIdentity = () => {
+      const current = (
+        localStorage.getItem('app_teacher_name') ||
+        localStorage.getItem('app_teacher_identity') ||
+        localStorage.getItem('app_creator_id') ||
+        localStorage.getItem('app_user_id') ||
+        ''
+      );
+      setTeacherIdentity(current);
+    };
+
+    window.addEventListener('app_teacher_identity_changed', syncIdentity);
+    window.addEventListener('storage', syncIdentity);
+    return () => {
+      window.removeEventListener('app_teacher_identity_changed', syncIdentity);
+      window.removeEventListener('storage', syncIdentity);
+    };
+  }, []);
+
   // Current user ID stored in localStorage fallback
   const currentUserId = React.useMemo(() => getOrCreateUserId(), []);
 
@@ -65,32 +85,8 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
 
   // Helper to determine if a reservation belongs to current user
   const isMyReservation = React.useCallback((r: Reservation) => {
-    if (!r) return false;
-
-    const currentSavedIdentity = (
-      teacherIdentity ||
-      localStorage.getItem('app_teacher_name') ||
-      localStorage.getItem('app_teacher_identity') ||
-      localStorage.getItem('app_creator_id') ||
-      localStorage.getItem('app_user_id') ||
-      currentUserId
-    ).trim().toLowerCase();
-
-    if (!currentSavedIdentity) return false;
-
-    const rCreatedBy = (r.createdBy || '').trim().toLowerCase();
-    const rUserId = (r.userId || '').trim().toLowerCase();
-
-    const isMatchByCreatedBy = Boolean(
-      rCreatedBy && (rCreatedBy === currentSavedIdentity || rCreatedBy.includes(currentSavedIdentity) || currentSavedIdentity.includes(rCreatedBy))
-    );
-    const isMatchByUserId = Boolean(
-      rUserId && (rUserId === currentSavedIdentity || rUserId.includes(currentSavedIdentity) || currentSavedIdentity.includes(rUserId))
-    );
-    const isOwnerByLocalStorageList = myReservationIds.includes(r.id);
-
-    return isMatchByCreatedBy || isMatchByUserId || isOwnerByLocalStorageList;
-  }, [teacherIdentity, currentUserId, myReservationIds]);
+    return isReservationMine(r, teacherIdentity);
+  }, [teacherIdentity]);
 
   const myCount = React.useMemo(() => {
     return (reservations || []).filter(isMyReservation).length;
@@ -214,6 +210,7 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
                 localStorage.setItem('app_teacher_identity', val);
                 localStorage.setItem('app_creator_id', val);
                 localStorage.setItem('app_user_id', val);
+                window.dispatchEvent(new Event('app_teacher_identity_changed'));
               }}
               placeholder="Ingresa tu Nombre/Apellido o Email..."
               className={`w-full px-3.5 py-2 rounded-xl border text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 ${

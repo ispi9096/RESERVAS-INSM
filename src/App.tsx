@@ -23,13 +23,13 @@ import { WeeklyScheduleView } from './components/WeeklyScheduleView';
 import { DailyOverviewView } from './components/DailyOverviewView';
 import { MyReservationsList } from './components/MyReservationsList';
 import { FixedSchedulesModal } from './components/FixedSchedulesModal';
-import { getOrCreateUserId } from './utils/userUtils';
+import { getOrCreateUserId, getMyReservationsCount } from './utils/userUtils';
 import { ReservationConfirmationModal } from './components/ReservationConfirmationModal';
 import { PrintNoticeBoard } from './components/PrintNoticeBoard';
 
 export default function App() {
   // View Mode
-  const [activeView, setActiveView] = useState<ViewMode>('wizard');
+  const [activeView, setActiveView] = useState<ViewMode>('my_reservations');
 
   // Accessibility States
   const [lightMode, setLightMode] = useState<boolean>(() => {
@@ -87,24 +87,27 @@ export default function App() {
 
   // Handlers
   const handleConfirmNewReservation = async (data: Omit<Reservation, 'id' | 'createdAt'>) => {
-    const newResId = `RES-${Math.floor(1000 + Math.random() * 9000)}`;
     const createdAt = new Date().toISOString();
     const uid = getOrCreateUserId();
     
-    const newRes: Reservation = {
+    const newResPayload: Omit<Reservation, 'id'> = {
       ...data,
-      id: newResId,
       createdAt,
       createdBy: data.createdBy || uid,
       userId: data.userId || uid
     };
 
     try {
-      await addReservationToDb(newRes);
+      const assignedId = await addReservationToDb(newResPayload);
+      const newRes: Reservation = {
+        ...newResPayload,
+        id: assignedId
+      };
+
       try {
         const storedMyIds: string[] = JSON.parse(localStorage.getItem('app_my_reservation_ids') || '[]');
-        if (!storedMyIds.includes(newResId)) {
-          storedMyIds.push(newResId);
+        if (!storedMyIds.includes(assignedId)) {
+          storedMyIds.push(assignedId);
           localStorage.setItem('app_my_reservation_ids', JSON.stringify(storedMyIds));
         }
       } catch (e) {
@@ -152,8 +155,43 @@ export default function App() {
     setActiveView('wizard');
   };
 
+  // Teacher identity state for dynamic myReservationsCount calculation
+  const [teacherIdentity, setTeacherIdentity] = useState<string>(() => {
+    return (
+      localStorage.getItem('app_teacher_name') ||
+      localStorage.getItem('app_teacher_identity') ||
+      localStorage.getItem('app_creator_id') ||
+      localStorage.getItem('app_user_id') ||
+      ''
+    );
+  });
+
+  useEffect(() => {
+    const syncIdentity = () => {
+      const current = (
+        localStorage.getItem('app_teacher_name') ||
+        localStorage.getItem('app_teacher_identity') ||
+        localStorage.getItem('app_creator_id') ||
+        localStorage.getItem('app_user_id') ||
+        ''
+      );
+      setTeacherIdentity(current);
+    };
+
+    window.addEventListener('app_teacher_identity_changed', syncIdentity);
+    window.addEventListener('storage', syncIdentity);
+    return () => {
+      window.removeEventListener('app_teacher_identity_changed', syncIdentity);
+      window.removeEventListener('storage', syncIdentity);
+    };
+  }, []);
+
   // Font Size CSS multiplier
   const fontSizeClass = fontSize === 'xlarge' ? 'text-lg' : fontSize === 'large' ? 'text-base' : 'text-sm';
+
+  const myReservationsCount = React.useMemo(() => {
+    return getMyReservationsCount(reservations, teacherIdentity);
+  }, [reservations, teacherIdentity]);
 
   return (
     <div className={`min-h-screen font-sans transition-colors ${
@@ -172,7 +210,7 @@ export default function App() {
         onToggleLightMode={() => setLightMode(!lightMode)}
         fontSize={fontSize}
         onChangeFontSize={setFontSize}
-        totalActiveReservationsCount={reservations.length}
+        myReservationsCount={myReservationsCount}
       />
 
       {/* Main Content Body */}

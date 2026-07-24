@@ -24,7 +24,7 @@ interface HeaderProps {
   onToggleLightMode: () => void;
   fontSize: 'normal' | 'large' | 'xlarge';
   onChangeFontSize: (size: 'normal' | 'large' | 'xlarge') => void;
-  totalActiveReservationsCount: number;
+  myReservationsCount: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleLightMode,
   fontSize,
   onChangeFontSize,
-  totalActiveReservationsCount
+  myReservationsCount
 }) => {
   const [showAccessibilityInfo, setShowAccessibilityInfo] = useState(false);
 
@@ -208,9 +208,9 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <FileText className={`w-4 h-4 ${activeView === 'my_reservations' ? 'text-white' : 'text-amber-500'}`} />
             <span>Mis Reservas</span>
-            {totalActiveReservationsCount > 0 && (
-              <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-amber-500 text-slate-950 font-black">
-                {totalActiveReservationsCount}
+            {myReservationsCount > 0 && (
+              <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-emerald-500 text-slate-950 font-black shadow-sm">
+                {myReservationsCount}
               </span>
             )}
           </button>

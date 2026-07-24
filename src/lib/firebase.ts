@@ -10,7 +10,7 @@ import {
   updateDoc, 
   getDocs,
   writeBatch,
-  getDocFromServer
+  enableIndexedDbPersistence
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { Reservation, FixedSchedule } from '../types';
@@ -21,6 +21,17 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const db = firebaseConfig.firestoreDatabaseId 
   ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
   : getFirestore(app);
+
+// Enable offline persistence to ensure robust operation when network connection fluctuates
+if (typeof window !== 'undefined') {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('Firestore persistence disabled: multiple tabs open');
+    } else if (err.code === 'unimplemented') {
+      console.warn('Firestore persistence not supported by browser');
+    }
+  });
+}
 
 const RESERVATIONS_COLLECTION = 'reservations';
 const FIXED_SCHEDULES_COLLECTION = 'fixed_schedules';
@@ -59,21 +70,37 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   }
 }
 
-async function testConnection() {
+/**
+ * Fetch live reservations directly from Firestore to ensure freshness before confirming new bookings
+ */
+export async function fetchLiveReservations(): Promise<Reservation[]> {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('unavailable'))) {
-      console.warn("Firestore running with local offline fallback cache.");
-    }
+    const colRef = collection(db, RESERVATIONS_COLLECTION);
+    const snapshot = await getDocs(colRef);
+    const reservationsList: Reservation[] = [];
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      reservationsList.push({
+        id: docSnap.id,
+        resourceId: data.resourceId,
+        date: data.date,
+        dayOfWeek: Number(data.dayOfWeek),
+        timeSlotId: Number(data.timeSlotId),
+        subject: data.subject || 'Clase',
+        course: data.course || '',
+        createdAt: data.createdAt || new Date().toISOString(),
+        notes: data.notes || '',
+        createdBy: data.createdBy || undefined,
+        userId: data.userId || undefined,
+        isFixed: !!data.isFixed
+      });
+    });
+    return reservationsList;
+  } catch (err) {
+    console.warn('Live reservation check fallback:', err);
+    return [];
   }
 }
-testConnection();
-
-// Perform complete database & local storage wipe of reservations on startup to leave all counters at 0
-clearAllReservationsFromDb().catch((e) => {
-  console.warn('Initial clear reservations status:', e);
-});
 
 /**
  * Subscribe to reservations in real-time from Firestore.
@@ -238,8 +265,11 @@ export function subscribeToFixedSchedules(callback: (schedules: FixedSchedule[])
  * Add a new reservation to Firestore
  */
 export async function addReservationToDb(reservation: Omit<Reservation, 'id'> & { id?: string }): Promise<string> {
-  const id = reservation.id || `res-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-  const docRef = doc(db, RESERVATIONS_COLLECTION, id);
+  const colRef = collection(db, RESERVATIONS_COLLECTION);
+  const docRef = (reservation.id && reservation.id.length > 15)
+    ? doc(db, RESERVATIONS_COLLECTION, reservation.id)
+    : doc(colRef);
+  const id = docRef.id;
   const dataToSave: Reservation = {
     id,
     resourceId: reservation.resourceId,
