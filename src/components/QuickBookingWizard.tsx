@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Projector, 
   Bot, 
@@ -85,9 +85,24 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   );
   
   // Multi-selection of time slots (e.g. [1, 2, 3])
-  const [selectedTimeSlotIds, setSelectedTimeSlotIds] = useState<number[]>(
-    preselectedTimeSlotId ? [preselectedTimeSlotId] : [1]
-  );
+  const [selectedTimeSlotIds, setSelectedTimeSlotIds] = useState<number[]>(() => {
+    try {
+      if (preselectedTimeSlotId) {
+        const val = validateResourceAvailability(
+          preselectedResourceId || 'proyector_1',
+          preselectedDate || initialDateStr,
+          selectedDayInfo?.dayOfWeek || 1,
+          preselectedTimeSlotId,
+          reservations || [],
+          fixedSchedules || []
+        );
+        if (val?.isAvailable) return [preselectedTimeSlotId];
+      }
+    } catch {
+      // ignore
+    }
+    return [];
+  });
 
   // Occupied slot notice modal state
   const [occupiedNotice, setOccupiedNotice] = useState<{
@@ -130,64 +145,109 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                   );
                   return st?.isAvailable;
                 } catch {
-                  return true;
+                  return false;
                 }
               });
               return [...prevAvailable, slotId];
             } else {
-              return [...safePrev, slotId];
+              return safePrev.filter((id) => {
+                try {
+                  return validateResourceAvailability(
+                    selectedResourceId || 'proyector_1',
+                    selectedDateStr || '',
+                    selectedDayInfo?.dayOfWeek || 1,
+                    id,
+                    reservations || [],
+                    fixedSchedules || []
+                  )?.isAvailable;
+                } catch {
+                  return false;
+                }
+              });
             }
           } catch {
-            return [...safePrev, slotId];
+            return safePrev;
           }
         }
       });
     } catch (e) {
       console.error('Error in toggleTimeSlot:', e);
-      setSelectedTimeSlotIds([slotId || 1]);
     }
   };
 
   // Helper to clear occupied slots from current selection
   const clearOccupiedSlots = () => {
-    setSelectedTimeSlotIds((prev) =>
-      prev.filter((id) =>
-        validateResourceAvailability(
-          selectedResourceId,
-          selectedDateStr,
-          selectedDayInfo.dayOfWeek,
-          id,
-          reservations || [],
-          fixedSchedules || []
-        ).isAvailable
-      )
-    );
+    try {
+      setSelectedTimeSlotIds((prev = []) =>
+        (Array.isArray(prev) ? prev : []).filter((id) => {
+          try {
+            return validateResourceAvailability(
+              selectedResourceId || 'proyector_1',
+              selectedDateStr || '',
+              selectedDayInfo?.dayOfWeek || 1,
+              id,
+              reservations || [],
+              fixedSchedules || []
+            )?.isAvailable;
+          } catch {
+            return false;
+          }
+        })
+      );
+    } catch (e) {
+      console.error('Error clearing occupied slots:', e);
+    }
   };
+
+  // Clear occupied slots when resource or date changes
+  useEffect(() => {
+    clearOccupiedSlots();
+  }, [selectedResourceId, selectedDateStr]);
 
   // Quick select helper: All morning available slots
   const selectAllAvailableMorning = () => {
-    const morningAvailable = TIME_SLOTS.filter(s => s.id <= 8 && validateResourceAvailability(
-      selectedResourceId,
-      selectedDateStr,
-      selectedDayInfo.dayOfWeek,
-      s.id,
-      reservations || [],
-      fixedSchedules || []
-    ).isAvailable).map(s => s.id);
-    setSelectedTimeSlotIds(morningAvailable);
+    try {
+      const morningAvailable = TIME_SLOTS.filter(s => {
+        try {
+          return s && s.id <= 8 && validateResourceAvailability(
+            selectedResourceId || 'proyector_1',
+            selectedDateStr || '',
+            selectedDayInfo?.dayOfWeek || 1,
+            s.id,
+            reservations || [],
+            fixedSchedules || []
+          )?.isAvailable;
+        } catch {
+          return false;
+        }
+      }).map(s => s.id);
+      setSelectedTimeSlotIds(morningAvailable);
+    } catch (e) {
+      console.error('Error in selectAllAvailableMorning:', e);
+    }
   };
 
   // Quick select helper: All afternoon available slots
   const selectAllAvailableAfternoon = () => {
-    const afternoonAvailable = TIME_SLOTS.filter(s => s.id >= 9 && validateResourceAvailability(
-      selectedResourceId,
-      selectedDateStr,
-      selectedDayInfo.dayOfWeek,
-      s.id,
-      reservations || [],
-      fixedSchedules || []
-    ).isAvailable).map(s => s.id);
-    setSelectedTimeSlotIds(afternoonAvailable);
+    try {
+      const afternoonAvailable = TIME_SLOTS.filter(s => {
+        try {
+          return s && s.id >= 9 && validateResourceAvailability(
+            selectedResourceId || 'proyector_1',
+            selectedDateStr || '',
+            selectedDayInfo?.dayOfWeek || 1,
+            s.id,
+            reservations || [],
+            fixedSchedules || []
+          )?.isAvailable;
+        } catch {
+          return false;
+        }
+      }).map(s => s.id);
+      setSelectedTimeSlotIds(afternoonAvailable);
+    } catch (e) {
+      console.error('Error in selectAllAvailableAfternoon:', e);
+    }
   };
 
   // Clear all selected slots

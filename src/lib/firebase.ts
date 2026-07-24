@@ -33,34 +33,44 @@ export function subscribeToReservations(callback: (reservations: Reservation[]) 
   
   return onSnapshot(colRef, async (snapshot) => {
     if (snapshot.empty) {
-      // Seed default sample reservations if database is empty
-      const initialReservations = generateSampleReservationsForCurrentWeek();
-      callback(initialReservations);
+      const hasSeeded = localStorage.getItem('app_has_seeded_reservations') === 'true';
+      if (!hasSeeded) {
+        localStorage.setItem('app_has_seeded_reservations', 'true');
+        // Seed default sample reservations if database is empty on first run
+        const initialReservations = generateSampleReservationsForCurrentWeek();
+        callback(initialReservations);
 
-      const batch = writeBatch(db);
-      initialReservations.forEach((res) => {
-        const docRef = doc(db, RESERVATIONS_COLLECTION, res.id);
-        const cleanRes: any = {
-          id: res.id,
-          resourceId: res.resourceId,
-          date: res.date,
-          dayOfWeek: Number(res.dayOfWeek),
-          timeSlotId: Number(res.timeSlotId),
-          subject: res.subject || 'Clase',
-          course: res.course || '',
-          createdAt: res.createdAt || new Date().toISOString(),
-          notes: res.notes || '',
-          isFixed: !!res.isFixed
-        };
-        batch.set(docRef, cleanRes);
-      });
-      try {
-        await batch.commit();
-      } catch (err) {
-        console.error('Error seeding initial reservations:', err);
+        const batch = writeBatch(db);
+        initialReservations.forEach((res) => {
+          const docRef = doc(db, RESERVATIONS_COLLECTION, res.id);
+          const cleanRes: any = {
+            id: res.id,
+            resourceId: res.resourceId,
+            date: res.date,
+            dayOfWeek: Number(res.dayOfWeek),
+            timeSlotId: Number(res.timeSlotId),
+            subject: res.subject || 'Clase',
+            course: res.course || '',
+            createdAt: res.createdAt || new Date().toISOString(),
+            notes: res.notes || '',
+            isFixed: !!res.isFixed
+          };
+          batch.set(docRef, cleanRes);
+        });
+        try {
+          await batch.commit();
+        } catch (err) {
+          console.error('Error seeding initial reservations:', err);
+        }
+        return;
       }
+
+      callback([]);
       return;
     }
+
+    // Mark as seeded since database contains items
+    localStorage.setItem('app_has_seeded_reservations', 'true');
 
     const reservationsList: Reservation[] = [];
     snapshot.forEach((docSnap) => {
@@ -82,7 +92,7 @@ export function subscribeToReservations(callback: (reservations: Reservation[]) 
     callback(reservationsList);
   }, (error) => {
     console.error('Real-time reservations listener error:', error);
-    callback(generateSampleReservationsForCurrentWeek());
+    callback([]);
   });
 }
 
