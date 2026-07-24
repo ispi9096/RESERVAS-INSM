@@ -37,14 +37,19 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Filter logic: Search by subject, course, date, resource
-  const filtered = reservations.filter((r) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      r.course.toLowerCase().includes(q) ||
-      (r.subject && r.subject.toLowerCase().includes(q)) ||
-      r.date.includes(q)
-    );
+  const filtered = (reservations || []).filter((r) => {
+    try {
+      if (!r) return false;
+      if (!searchQuery?.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        (r.course && r.course.toLowerCase().includes(q)) ||
+        (r.subject && r.subject.toLowerCase().includes(q)) ||
+        (r.date && r.date.includes(q))
+      );
+    } catch {
+      return false;
+    }
   });
 
   return (
@@ -283,8 +288,15 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    onCancelReservation(reservationToCancel.id);
-                    setReservationToCancel(null);
+                    try {
+                      if (reservationToCancel?.id) {
+                        onCancelReservation?.(reservationToCancel.id);
+                      }
+                    } catch (err) {
+                      console.error('Error canceling reservation:', err);
+                    } finally {
+                      setReservationToCancel(null);
+                    }
                   }}
                   className="flex-1 py-3 px-4 rounded-xl font-black text-xs bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center gap-1.5 shadow-lg shadow-rose-900/30 transition-all"
                 >

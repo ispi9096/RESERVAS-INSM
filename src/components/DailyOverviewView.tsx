@@ -139,7 +139,13 @@ export const DailyOverviewView: React.FC<DailyOverviewViewProps> = ({
                       <td key={res.id} className={`p-2.5 border-r last:border-r-0 align-top ${isLight ? 'border-slate-200' : 'border-slate-800/80'}`}>
                         {status.isAvailable ? (
                           <button
-                            onClick={() => onSelectCellToBook(res.id, selectedDateStr, slot.id)}
+                            onClick={() => {
+                              try {
+                                onSelectCellToBook?.(res.id, selectedDateStr, slot.id);
+                              } catch (err) {
+                                console.error('Error selecting cell in DailyOverviewView:', err);
+                              }
+                            }}
                             className={`w-full p-2.5 rounded-xl border transition-all flex items-center justify-between group ${
                               isLight
                                 ? 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 shadow-sm'
