@@ -596,13 +596,14 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                       key={slot.id}
                       onClick={() => {
                         try {
-                          if (!slotStatus.isAvailable) {
+                          if (!slotStatus?.isAvailable) {
                             setOccupiedNotice({
-                              slotLabel: slot.label,
-                              subject: slotStatus.subject || 'Materia',
-                              course: slotStatus.course || 'Curso',
-                              message: slotStatus.message || 'Este recurso ya se encuentra reservado para este módulo.'
+                              slotLabel: slot?.label,
+                              subject: slotStatus?.subject || 'Materia',
+                              course: slotStatus?.course || 'Curso',
+                              message: 'Este recurso ya se encuentra reservado para esta materia/curso.'
                             });
+                            return;
                           }
                           toggleTimeSlot(slot?.id);
                         } catch (err) {
@@ -698,13 +699,14 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                       key={slot.id}
                       onClick={() => {
                         try {
-                          if (!slotStatus.isAvailable) {
+                          if (!slotStatus?.isAvailable) {
                             setOccupiedNotice({
-                              slotLabel: slot.label,
-                              subject: slotStatus.subject || 'Materia',
-                              course: slotStatus.course || 'Curso',
-                              message: slotStatus.message || 'Este recurso ya se encuentra reservado para este módulo.'
+                              slotLabel: slot?.label,
+                              subject: slotStatus?.subject || 'Materia',
+                              course: slotStatus?.course || 'Curso',
+                              message: 'Este recurso ya se encuentra reservado para esta materia/curso.'
                             });
+                            return;
                           }
                           toggleTimeSlot(slot?.id);
                         } catch (err) {

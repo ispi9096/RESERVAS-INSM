@@ -305,14 +305,14 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                               if (existingUserReservation) {
                                 onSelectExistingReservation?.(existingUserReservation);
                               } else {
-                                const resName = INITIAL_RESOURCES.find(r => r.id === targetResId)?.name || targetResId;
+                                const resName = INITIAL_RESOURCES?.find(r => r?.id === targetResId)?.name || targetResId;
                                 setOccupiedNotice({
                                   resourceName: resName,
-                                  dayName: day.name,
-                                  slotLabel: slot.label,
-                                  subject: status.subject || 'Materia',
-                                  course: status.course || 'Curso',
-                                  message: status.message || 'Este recurso ya se encuentra reservado para este módulo.'
+                                  dayName: day?.name || '',
+                                  slotLabel: slot?.label || '',
+                                  subject: status?.subject || 'Materia',
+                                  course: status?.course || 'Curso',
+                                  message: 'Este recurso ya se encuentra reservado para esta materia/curso.'
                                 });
                               }
                             } catch (err) {
