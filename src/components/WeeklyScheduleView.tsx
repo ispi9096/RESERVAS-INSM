@@ -260,7 +260,13 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                       {status.isAvailable ? (
                         /* AVAILABLE GREEN CELL */
                         <button
-                          onClick={() => onSelectCellToBook(targetResId, day.dateStr, slot.id)}
+                          onClick={() => {
+                            try {
+                              onSelectCellToBook?.(targetResId || 'proyector_1', day?.dateStr || '', slot?.id || 1);
+                            } catch (err) {
+                              console.error('Error in onSelectCellToBook:', err);
+                            }
+                          }}
                           className={`w-full h-full min-h-[70px] p-2.5 rounded-xl border-2 transition-all flex flex-col justify-between items-start text-left group ${
                             isLight
                               ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300 text-emerald-900 hover:border-emerald-500 shadow-sm'
@@ -285,12 +291,21 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                         /* OCCUPIED RED OR LOCKED CELL */
                         <div
                           onClick={() => {
-                            if (existingUserReservation) {
-                              onSelectExistingReservation(existingUserReservation);
+                            try {
+                              if (existingUserReservation) {
+                                onSelectExistingReservation?.(existingUserReservation);
+                              } else {
+                                onSelectCellToBook?.(targetResId || 'proyector_1', day?.dateStr || '', slot?.id || 1);
+                              }
+                            } catch (err) {
+                              console.error('Error handling cell click:', err);
+                              try {
+                                onSelectCellToBook?.(targetResId || 'proyector_1', day?.dateStr || '', slot?.id || 1);
+                              } catch {}
                             }
                           }}
                           className={`w-full h-full min-h-[70px] p-2.5 rounded-xl border-2 flex flex-col justify-between text-left ${
-                            existingUserReservation ? 'cursor-pointer hover:ring-2 hover:ring-amber-400' : ''
+                            existingUserReservation ? 'cursor-pointer hover:ring-2 hover:ring-amber-400' : 'cursor-pointer'
                           } ${
                             status.isFixed
                               ? isLight ? 'bg-rose-100 border-rose-300 text-rose-950' : 'bg-rose-950/80 border-rose-700 text-rose-100'

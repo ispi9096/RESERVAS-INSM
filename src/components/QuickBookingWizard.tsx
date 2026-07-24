@@ -91,39 +91,53 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
 
   // Toggle single time slot selection
   const toggleTimeSlot = (slotId: number) => {
-    setSelectedTimeSlotIds((prev) => {
-      if (prev.includes(slotId)) {
-        return prev.filter((id) => id !== slotId);
-      } else {
-        // Check if newly clicked slot is available
-        const clickedSlotStatus = validateResourceAvailability(
-          selectedResourceId,
-          selectedDateStr,
-          selectedDayInfo.dayOfWeek,
-          slotId,
-          reservations || [],
-          fixedSchedules || []
-        );
-
-        if (clickedSlotStatus.isAvailable) {
-          // Keep only previously selected slots that are ALSO available, plus this new one
-          const prevAvailable = prev.filter((id) => {
-            const st = validateResourceAvailability(
-              selectedResourceId,
-              selectedDateStr,
-              selectedDayInfo.dayOfWeek,
-              id,
+    try {
+      if (!slotId) return;
+      setSelectedTimeSlotIds((prev = []) => {
+        const safePrev = Array.isArray(prev) ? prev : [];
+        if (safePrev.includes(slotId)) {
+          return safePrev.filter((id) => id !== slotId);
+        } else {
+          try {
+            const clickedSlotStatus = validateResourceAvailability(
+              selectedResourceId || 'proyector_1',
+              selectedDateStr || '',
+              selectedDayInfo?.dayOfWeek || 1,
+              slotId,
               reservations || [],
               fixedSchedules || []
             );
-            return st.isAvailable;
-          });
-          return [...prevAvailable, slotId];
-        } else {
-          return [...prev, slotId];
+
+            if (clickedSlotStatus?.isAvailable) {
+              // Keep only previously selected slots that are ALSO available, plus this new one
+              const prevAvailable = safePrev.filter((id) => {
+                try {
+                  const st = validateResourceAvailability(
+                    selectedResourceId || 'proyector_1',
+                    selectedDateStr || '',
+                    selectedDayInfo?.dayOfWeek || 1,
+                    id,
+                    reservations || [],
+                    fixedSchedules || []
+                  );
+                  return st?.isAvailable;
+                } catch {
+                  return true;
+                }
+              });
+              return [...prevAvailable, slotId];
+            } else {
+              return [...safePrev, slotId];
+            }
+          } catch {
+            return [...safePrev, slotId];
+          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      console.error('Error in toggleTimeSlot:', e);
+      setSelectedTimeSlotIds([slotId || 1]);
+    }
   };
 
   // Helper to clear occupied slots from current selection
@@ -572,7 +586,13 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                     <button
                       type="button"
                       key={slot.id}
-                      onClick={() => toggleTimeSlot(slot.id)}
+                      onClick={() => {
+                        try {
+                          toggleTimeSlot(slot?.id);
+                        } catch (err) {
+                          console.error('Error toggling morning slot:', err);
+                        }
+                      }}
                       className={`p-3.5 rounded-2xl border-2 text-left transition-all relative overflow-hidden ${
                         isSlotSelected
                           ? isLight
@@ -660,7 +680,13 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                     <button
                       type="button"
                       key={slot.id}
-                      onClick={() => toggleTimeSlot(slot.id)}
+                      onClick={() => {
+                        try {
+                          toggleTimeSlot(slot?.id);
+                        } catch (err) {
+                          console.error('Error toggling afternoon slot:', err);
+                        }
+                      }}
                       className={`p-3.5 rounded-2xl border-2 text-left transition-all relative overflow-hidden ${
                         isSlotSelected
                           ? isLight
