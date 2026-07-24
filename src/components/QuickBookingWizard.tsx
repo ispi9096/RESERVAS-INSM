@@ -22,7 +22,7 @@ import {
 import { Resource, ResourceId, Reservation, FixedSchedule } from '../types';
 import { INITIAL_RESOURCES, TIME_SLOTS, INSTITUTIONAL_COURSES, OFFICIAL_SUBJECTS_BY_LEVEL, getMondayOfCurrentWeek, formatDateToYYYYMMDD } from '../data/initialData';
 import { getWeekDays, formatFriendlyDate } from '../utils/dateUtils';
-import { validateResourceAvailability, getProjectorsAvailabilityCount } from '../utils/validation';
+import { validateResourceAvailability } from '../utils/validation';
 
 interface QuickBookingWizardProps {
   reservations: Reservation[];

@@ -24,7 +24,7 @@ export interface TimeSlot {
 
 export interface FixedSchedule {
   id: string;
-  resourceId: ResourceId | 'any_proyector';
+  resourceId: ResourceId;
   dayOfWeek: number; // 1 = Lunes, 2 = Martes, 3 = Miércoles, 4 = Jueves, 5 = Viernes
   timeSlotId: number;
   subject: string; // e.g. "Tecnología"

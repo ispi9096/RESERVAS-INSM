@@ -17,7 +17,7 @@ import {
 import { Resource, ResourceId, Reservation, FixedSchedule } from '../types';
 import { INITIAL_RESOURCES, TIME_SLOTS, getMondayOfCurrentWeek } from '../data/initialData';
 import { getWeekDays, formatFriendlyDate } from '../utils/dateUtils';
-import { validateResourceAvailability, getProjectorsAvailabilityCount } from '../utils/validation';
+import { validateResourceAvailability } from '../utils/validation';
 
 interface WeeklyScheduleViewProps {
   reservations: Reservation[];
@@ -40,7 +40,7 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
 }) => {
   const isLight = lightMode;
   // Filter by Resource
-  const [selectedResourceId, setSelectedResourceId] = useState<ResourceId | 'all_projectors'>('proyector_1');
+  const [selectedResourceId, setSelectedResourceId] = useState<ResourceId>('proyector_1');
 
   // Week Date State
   const [currentMonday, setCurrentMonday] = useState<Date>(() => getMondayOfCurrentWeek());
@@ -109,22 +109,6 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                 <span>{r.name}</span>
               </button>
             ))}
-
-            <button
-              onClick={() => setSelectedResourceId('all_projectors')}
-              className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all border flex items-center gap-2 ${
-                selectedResourceId === 'all_projectors'
-                  ? highContrast
-                    ? 'bg-yellow-400 text-black border-yellow-300'
-                    : 'bg-amber-600 text-white border-amber-400 shadow-md'
-                  : isLight
-                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
-                    : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700'
-              }`}
-            >
-              <Projector className={`w-4 h-4 ${isLight ? 'text-amber-600' : 'text-yellow-300'}`} />
-              <span>Ambos Proyectores (2 un.)</span>
-            </button>
           </div>
         </div>
 
@@ -242,12 +226,12 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
 
                 {/* Day Columns */}
                 {weekDays.map((day) => {
-                  const targetResId: ResourceId = selectedResourceId === 'all_projectors' ? 'proyector_1' : selectedResourceId;
+                  const targetResId: ResourceId = selectedResourceId;
                   const safeReservations = Array.isArray(reservations) ? reservations : [];
                   const safeFixedSchedules = Array.isArray(fixedSchedules) ? fixedSchedules : [];
 
                   const status = validateResourceAvailability(
-                    selectedResourceId === 'all_projectors' ? 'any_proyector' : selectedResourceId,
+                    selectedResourceId,
                     day.dateStr,
                     day.dayOfWeek,
                     slot.id,
@@ -257,7 +241,7 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
 
                   // Check if user has an active reservation here
                   const existingUserReservation = safeReservations.find(
-                    r => r && (selectedResourceId === 'all_projectors' ? (r?.resourceId === 'proyector_1' || r?.resourceId === 'proyector_2') : r?.resourceId === selectedResourceId)
+                    r => r && r?.resourceId === selectedResourceId
                          && r?.date === day.dateStr 
                          && Number(r?.timeSlotId) === Number(slot.id)
                   );

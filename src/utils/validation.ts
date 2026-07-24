@@ -1,5 +1,5 @@
 import { ResourceId, Reservation, FixedSchedule } from '../types';
-import { INITIAL_RESOURCES, TIME_SLOTS } from '../data/initialData';
+import { INITIAL_RESOURCES } from '../data/initialData';
 
 export interface ValidationResult {
   isAvailable: boolean;
@@ -12,61 +12,14 @@ export interface ValidationResult {
 }
 
 export function validateResourceAvailability(
-  requestedResourceId: ResourceId | 'any_proyector',
+  requestedResourceId: ResourceId,
   dateStr: string, // YYYY-MM-DD
   dayOfWeek: number, // 1..5
   timeSlotId: number,
   reservations: Reservation[] = [],
   fixedSchedules: FixedSchedule[] = []
 ): ValidationResult {
-  const safeReservations = Array.isArray(reservations) ? reservations : [];
-  const safeFixedSchedules = Array.isArray(fixedSchedules) ? fixedSchedules : [];
-
-  // 1. Check Fixed Schedules
-  const fixedMatch = safeFixedSchedules.find(f => {
-    if (!f) return false;
-    if (Number(f?.dayOfWeek) !== Number(dayOfWeek) || Number(f?.timeSlotId) !== Number(timeSlotId)) return false;
-    if (requestedResourceId === 'any_proyector') {
-      return f?.resourceId === 'proyector_1' || f?.resourceId === 'proyector_2' || f?.resourceId === 'any_proyector';
-    }
-    return f?.resourceId === requestedResourceId;
-  });
-
-  if (fixedMatch) {
-    return {
-      isAvailable: false,
-      message: `Ocupado por Horario Fijo Curricular: ${fixedMatch?.subject || 'Materia'} (${fixedMatch?.course || 'Curso'})`,
-      course: fixedMatch?.course || '',
-      subject: fixedMatch?.subject || '',
-      isFixed: true,
-      assignedResourceId: fixedMatch?.resourceId === 'any_proyector' ? 'proyector_1' : fixedMatch?.resourceId
-    };
-  }
-
-  // 2. Handle 'any_proyector' category check
-  if (requestedResourceId === 'any_proyector') {
-    // Check bookings for proyector_1 and proyector_2 on this date & timeSlot
-    const p1Booked = isSpecificResourceBooked('proyector_1', dateStr, dayOfWeek, timeSlotId, safeReservations, safeFixedSchedules);
-    const p2Booked = isSpecificResourceBooked('proyector_2', dateStr, dayOfWeek, timeSlotId, safeReservations, safeFixedSchedules);
-
-    if (!p1Booked.isAvailable && !p2Booked.isAvailable) {
-      return {
-        isAvailable: false,
-        message: `⚠️ Ambos proyectores (Proyector 1 y Proyector 2) se encuentran reservados en este módulo.`,
-        isFixed: false
-      };
-    }
-
-    const availableId: ResourceId = p1Booked.isAvailable ? 'proyector_1' : 'proyector_2';
-    return {
-      isAvailable: true,
-      assignedResourceId: availableId,
-      message: `Disponible (${p1Booked.isAvailable && p2Booked.isAvailable ? '2/2 proyectores libres' : '1/2 proyector libre'})`
-    };
-  }
-
-  // 3. Specific Resource Check
-  return isSpecificResourceBooked(requestedResourceId, dateStr, dayOfWeek, timeSlotId, safeReservations, safeFixedSchedules);
+  return isSpecificResourceBooked(requestedResourceId, dateStr, dayOfWeek, timeSlotId, reservations, fixedSchedules);
 }
 
 function isSpecificResourceBooked(
@@ -81,7 +34,7 @@ function isSpecificResourceBooked(
   const safeFixedSchedules = Array.isArray(fixedSchedules) ? fixedSchedules : [];
 
   // Check fixed schedules for this specific resource
-  const fixed = safeFixedSchedules.find(f => f && Number(f?.dayOfWeek) === Number(dayOfWeek) && Number(f?.timeSlotId) === Number(timeSlotId) && (f?.resourceId === resourceId || f?.resourceId === 'any_proyector'));
+  const fixed = safeFixedSchedules.find(f => f && Number(f?.dayOfWeek) === Number(dayOfWeek) && Number(f?.timeSlotId) === Number(timeSlotId) && f?.resourceId === resourceId);
   if (fixed) {
     return {
       isAvailable: false,
@@ -114,24 +67,3 @@ function isSpecificResourceBooked(
   };
 }
 
-export function getProjectorsAvailabilityCount(
-  dateStr: string,
-  dayOfWeek: number,
-  timeSlotId: number,
-  reservations: Reservation[] = [],
-  fixedSchedules: FixedSchedule[] = []
-): { total: number; availableCount: number; p1Available: boolean; p2Available: boolean } {
-  const p1 = isSpecificResourceBooked('proyector_1', dateStr, dayOfWeek, timeSlotId, reservations || [], fixedSchedules || []);
-  const p2 = isSpecificResourceBooked('proyector_2', dateStr, dayOfWeek, timeSlotId, reservations || [], fixedSchedules || []);
-
-  let availableCount = 0;
-  if (p1.isAvailable) availableCount++;
-  if (p2.isAvailable) availableCount++;
-
-  return {
-    total: 2,
-    availableCount,
-    p1Available: p1.isAvailable,
-    p2Available: p2.isAvailable
-  };
-}
