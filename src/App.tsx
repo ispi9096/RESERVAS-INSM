@@ -14,8 +14,7 @@ import {
   subscribeToReservations,
   subscribeToFixedSchedules,
   addReservationToDb,
-  deleteReservationFromDb,
-  clearAllReservationsFromDb
+  deleteReservationFromDb
 } from './lib/firebase';
 
 import { Header } from './components/Header';
@@ -148,17 +147,6 @@ export default function App() {
     }
   };
 
-  const handleClearAllReservations = async () => {
-    try {
-      await clearAllReservationsFromDb();
-      setReservations([]);
-      setConfirmedReservation(null);
-    } catch (err) {
-      console.error('Error clearing all reservations:', err);
-      alert('Hubo un error al vaciar las reservas en la nube.');
-    }
-  };
-
   const handleCellClickToBook = (resourceId: ResourceId, dateStr: string, slotId: number) => {
     setPreselectedCell({ resourceId, dateStr, slotId });
     setActiveView('wizard');
@@ -185,7 +173,6 @@ export default function App() {
         fontSize={fontSize}
         onChangeFontSize={setFontSize}
         totalActiveReservationsCount={reservations.length}
-        onClearAllReservations={handleClearAllReservations}
       />
 
       {/* Main Content Body */}
@@ -232,7 +219,6 @@ export default function App() {
             reservations={reservations}
             onCancelReservation={handleCancelReservation}
             onResetData={handleResetData}
-            onClearAllReservations={handleClearAllReservations}
             onNewReservation={() => {
               setPreselectedCell(null);
               setActiveView('wizard');

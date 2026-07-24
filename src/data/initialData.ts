@@ -234,6 +234,24 @@ export const SUBJECTS_BY_COURSE: Record<string, string[]> = {
     'SEMINARIO DE INVESTIGACIÓN',
     'LENGUA EXTRANJERA (INGLÉS)',
     'MATEMÁTICA'
+  ],
+  'Sala de 3 Años (Inicial)': [
+    'Espacio Curricular',
+    'Expresión Corporal',
+    'Música',
+    'Juego y Desarrollo'
+  ],
+  'Sala de 4 Años (Inicial)': [
+    'Espacio Curricular',
+    'Expresión Corporal',
+    'Música',
+    'Juego y Desarrollo'
+  ],
+  'Sala de 5 Años (Inicial)': [
+    'Espacio Curricular',
+    'Expresión Corporal',
+    'Música',
+    'Juego y Desarrollo'
   ]
 };
 
@@ -242,6 +260,13 @@ export function getSubjectsForCourse(courseName: string): string[] {
   if (SUBJECTS_BY_COURSE[courseName]) return SUBJECTS_BY_COURSE[courseName];
 
   const lower = courseName.toLowerCase();
+
+  if (lower.includes('inicial') || lower.includes('sala')) {
+    return ['Espacio Curricular', 'Expresión Corporal', 'Música', 'Juego y Desarrollo'];
+  }
+  if (lower.includes('primario') || lower.includes('grado')) {
+    return ['Ciencias Naturales', 'Ciencias Sociales', 'Educación Tecnológica', 'Lengua y Literatura', 'Matemática', 'Educación Física', 'Inglés', 'Música', 'Plástica'];
+  }
   if (lower.includes('1º año') || lower.includes('1ºa') || lower.includes('1ºb')) {
     return SUBJECTS_BY_COURSE['1º Año A (Secundario)'];
   }
@@ -265,12 +290,6 @@ export function getSubjectsForCourse(courseName: string): string[] {
   }
   if (lower.includes('5º') && (lower.includes('soc') || lower.includes('5s'))) {
     return SUBJECTS_BY_COURSE['5º Año Soc (Secundario)'];
-  }
-  if (lower.includes('primario') || lower.includes('grado')) {
-    return ['Ciencias Naturales', 'Ciencias Sociales', 'Educación Tecnológica', 'Lengua y Literatura', 'Matemática', 'Educación Física', 'Inglés', 'Música', 'Plástica'];
-  }
-  if (lower.includes('inicial') || lower.includes('sala')) {
-    return ['Espacio Curricular', 'Expresión Corporal', 'Música', 'Juego y Desarrollo'];
   }
 
   return SUBJECTS_BY_COURSE['1º Año A (Secundario)'];

@@ -383,14 +383,14 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   // Level Detection Helper
   const detectLevelFromCourse = (courseName: string): string => {
     const normalized = courseName.toLowerCase();
-    if (normalized.includes('secundario') || normalized.includes('año')) {
-      return 'NIVEL SECUNDARIO';
+    if (normalized.includes('inicial') || normalized.includes('sala')) {
+      return 'NIVEL INICIAL';
     }
     if (normalized.includes('primario') || normalized.includes('grado')) {
       return 'NIVEL PRIMARIO';
     }
-    if (normalized.includes('inicial') || normalized.includes('sala')) {
-      return 'NIVEL INICIAL';
+    if (normalized.includes('secundario') || normalized.includes('año')) {
+      return 'NIVEL SECUNDARIO';
     }
     return 'NIVEL SECUNDARIO';
   };
@@ -1279,7 +1279,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                 </span>
                 <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded border uppercase ${
                   isLight ? 'text-emerald-800 bg-emerald-100 border-emerald-300' : 'text-emerald-300 bg-emerald-950/80 border-emerald-800'
-                }`}>{currentLevel.replace('NIVEL ', '')}</span>
+                }`}>{currentLevel}</span>
               </label>
 
               {/* Quick Filter Search Input */}
