@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Projector, 
   Bot, 
@@ -199,10 +199,25 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
     }
   };
 
-  // Clear occupied slots when resource or date changes
+  const isFirstRun = useRef(true);
+
+  // Reset selected slots when resource changes
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    try {
+      setSelectedTimeSlotIds([]);
+    } catch (err) {
+      console.error('Error resetting selected slots on resource change:', err);
+    }
+  }, [selectedResourceId]);
+
+  // Clear occupied slots when date changes
   useEffect(() => {
     clearOccupiedSlots();
-  }, [selectedResourceId, selectedDateStr]);
+  }, [selectedDateStr]);
 
   // Quick select helper: All morning available slots
   const selectAllAvailableMorning = () => {
