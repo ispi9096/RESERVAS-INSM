@@ -89,6 +89,14 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
     preselectedTimeSlotId ? [preselectedTimeSlotId] : [1]
   );
 
+  // Occupied slot notice modal state
+  const [occupiedNotice, setOccupiedNotice] = useState<{
+    slotLabel?: string;
+    subject?: string;
+    course?: string;
+    message?: string;
+  } | null>(null);
+
   // Toggle single time slot selection
   const toggleTimeSlot = (slotId: number) => {
     try {
@@ -588,6 +596,14 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                       key={slot.id}
                       onClick={() => {
                         try {
+                          if (!slotStatus.isAvailable) {
+                            setOccupiedNotice({
+                              slotLabel: slot.label,
+                              subject: slotStatus.subject || 'Materia',
+                              course: slotStatus.course || 'Curso',
+                              message: slotStatus.message || 'Este recurso ya se encuentra reservado para este módulo.'
+                            });
+                          }
                           toggleTimeSlot(slot?.id);
                         } catch (err) {
                           console.error('Error toggling morning slot:', err);
@@ -682,6 +698,14 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                       key={slot.id}
                       onClick={() => {
                         try {
+                          if (!slotStatus.isAvailable) {
+                            setOccupiedNotice({
+                              slotLabel: slot.label,
+                              subject: slotStatus.subject || 'Materia',
+                              course: slotStatus.course || 'Curso',
+                              message: slotStatus.message || 'Este recurso ya se encuentra reservado para este módulo.'
+                            });
+                          }
                           toggleTimeSlot(slot?.id);
                         } catch (err) {
                           console.error('Error toggling afternoon slot:', err);
@@ -1027,6 +1051,52 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
             </button>
           </div>
         </form>
+      )}
+
+      {/* Occupied Slot Info Modal */}
+      {occupiedNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`max-w-md w-full p-6 rounded-3xl border shadow-2xl ${
+            isLight ? 'bg-white border-rose-300 text-slate-900' : 'bg-slate-900 border-rose-800 text-white'
+          }`}>
+            <div className="flex items-center gap-3 text-rose-600 mb-3">
+              <ShieldAlert className="w-8 h-8 flex-shrink-0" />
+              <div>
+                <h3 className="text-lg font-black leading-tight">Módulo No Disponible</h3>
+                <p className="text-xs font-bold opacity-80">{occupiedNotice.slotLabel || 'Módulo Ocupado'}</p>
+              </div>
+            </div>
+
+            <p className={`text-sm mb-4 leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+              Este recurso ya se encuentra reservado para este módulo.
+            </p>
+
+            <div className={`p-4 rounded-2xl border mb-5 space-y-2 ${
+              isLight ? 'bg-rose-50 border-rose-200 text-rose-950' : 'bg-rose-950/60 border-rose-800 text-rose-100'
+            }`}>
+              <div className="text-xs font-bold uppercase tracking-wider opacity-75">Detalles de Ocupación:</div>
+              <div className="text-sm font-black">
+                📖 Materia: <span className="font-semibold">{occupiedNotice.subject || 'Materia no especificada'}</span>
+              </div>
+              <div className="text-sm font-black">
+                🎓 Curso: <span className="font-semibold">{occupiedNotice.course || 'Curso no especificado'}</span>
+              </div>
+              {occupiedNotice.message && (
+                <div className="text-xs font-medium pt-2 border-t border-rose-300/40">
+                  {occupiedNotice.message}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOccupiedNotice(null)}
+              className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-sm shadow-lg transition-all active:scale-95"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
