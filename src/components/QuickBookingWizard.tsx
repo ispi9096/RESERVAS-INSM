@@ -46,17 +46,43 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   preselectedTimeSlotId
 }) => {
   const isLight = lightMode;
-  // Step State (1: Recurso, 2: Día y Módulo, 3: Confirmar)
-  const [step, setStep] = useState<1 | 2 | 3>(preselectedResourceId && preselectedDate && preselectedTimeSlotId ? 3 : 1);
 
-  // Selected Data
-  const [selectedResourceId, setSelectedResourceId] = useState<ResourceId>(preselectedResourceId || 'proyector_1');
-  
   // Week setup
   const mondayDate = useMemo(() => getMondayOfCurrentWeek(), []);
   const weekDays = useMemo(() => getWeekDays(mondayDate), [mondayDate]);
-  
-  const [selectedDateStr, setSelectedDateStr] = useState<string>(preselectedDate || weekDays[0].dateStr);
+
+  const initialDateStr = preselectedDate || (weekDays && weekDays.length > 0 ? weekDays[0].dateStr : '');
+
+  // Selected Resource
+  const [selectedResourceId, setSelectedResourceId] = useState<ResourceId>(preselectedResourceId || 'proyector_1');
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(initialDateStr);
+
+  // Selected Day of Week (1 = Mon ... 5 = Fri)
+  const selectedDayInfo = useMemo(() => {
+    const found = weekDays.find(d => d.dateStr === selectedDateStr);
+    if (found) return found;
+    if (weekDays && weekDays.length > 0) return weekDays[0];
+    return { dayOfWeek: 1, dateStr: selectedDateStr, name: 'Lunes', short: 'Lun', date: new Date(), formattedDay: '' };
+  }, [weekDays, selectedDateStr]);
+
+  // Check if preselected slot is actually available
+  const isPreselectedAvailable = useMemo(() => {
+    if (!preselectedResourceId || !preselectedDate || !preselectedTimeSlotId) return false;
+    const validation = validateResourceAvailability(
+      preselectedResourceId,
+      preselectedDate,
+      selectedDayInfo.dayOfWeek,
+      preselectedTimeSlotId,
+      reservations,
+      fixedSchedules
+    );
+    return validation.isAvailable;
+  }, [preselectedResourceId, preselectedDate, preselectedTimeSlotId, selectedDayInfo.dayOfWeek, reservations, fixedSchedules]);
+
+  // Step State (1: Recurso, 2: Día y Módulo, 3: Confirmar)
+  const [step, setStep] = useState<1 | 2 | 3>(
+    preselectedResourceId && preselectedDate && preselectedTimeSlotId && isPreselectedAvailable ? 3 : 2
+  );
   
   // Multi-selection of time slots (e.g. [1, 2, 3])
   const [selectedTimeSlotIds, setSelectedTimeSlotIds] = useState<number[]>(
@@ -69,9 +95,51 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
       if (prev.includes(slotId)) {
         return prev.filter((id) => id !== slotId);
       } else {
-        return [...prev, slotId];
+        // Check if newly clicked slot is available
+        const clickedSlotStatus = validateResourceAvailability(
+          selectedResourceId,
+          selectedDateStr,
+          selectedDayInfo.dayOfWeek,
+          slotId,
+          reservations,
+          fixedSchedules
+        );
+
+        if (clickedSlotStatus.isAvailable) {
+          // Keep only previously selected slots that are ALSO available, plus this new one
+          const prevAvailable = prev.filter((id) => {
+            const st = validateResourceAvailability(
+              selectedResourceId,
+              selectedDateStr,
+              selectedDayInfo.dayOfWeek,
+              id,
+              reservations,
+              fixedSchedules
+            );
+            return st.isAvailable;
+          });
+          return [...prevAvailable, slotId];
+        } else {
+          return [...prev, slotId];
+        }
       }
     });
+  };
+
+  // Helper to clear occupied slots from current selection
+  const clearOccupiedSlots = () => {
+    setSelectedTimeSlotIds((prev) =>
+      prev.filter((id) =>
+        validateResourceAvailability(
+          selectedResourceId,
+          selectedDateStr,
+          selectedDayInfo.dayOfWeek,
+          id,
+          reservations,
+          fixedSchedules
+        ).isAvailable
+      )
+    );
   };
 
   // Quick select helper: All morning available slots
@@ -150,11 +218,6 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
       ...otherGroups
     ];
   }, [currentLevel]);
-
-  // Selected Day of Week (1 = Mon ... 5 = Fri)
-  const selectedDayInfo = useMemo(() => {
-    return weekDays.find(d => d.dateStr === selectedDateStr) || weekDays[0];
-  }, [weekDays, selectedDateStr]);
 
   // Live Validation for all selected time slots
   const selectedSlotValidations = useMemo(() => {
@@ -699,6 +762,13 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                   <p className={`text-xs mt-2 ${isLight ? 'text-rose-800' : 'text-rose-300/80'}`}>
                     Desmarca los módulos ocupados para poder avanzar al siguiente paso.
                   </p>
+                  <button
+                    type="button"
+                    onClick={clearOccupiedSlots}
+                    className="mt-2.5 px-3.5 py-1.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-black text-xs shadow-md transition-all flex items-center gap-1.5 active:scale-95"
+                  >
+                    <span>🧹 Quitar Módulos Ocupados</span>
+                  </button>
                 </div>
               </div>
             </div>
