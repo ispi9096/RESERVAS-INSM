@@ -24,6 +24,36 @@ export const db = firebaseConfig.firestoreDatabaseId
 const RESERVATIONS_COLLECTION = 'reservations';
 const FIXED_SCHEDULES_COLLECTION = 'fixed_schedules';
 
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: localStorage.getItem('app_user_id') || null,
+    },
+    operationType,
+    path
+  };
+  console.warn('Firestore Operation Status:', JSON.stringify(errInfo));
+}
+
 /**
  * Subscribe to reservations in real-time from Firestore.
  * Automatically seeds sample reservations if collection is completely empty on first run.
@@ -53,6 +83,8 @@ export function subscribeToReservations(callback: (reservations: Reservation[]) 
             course: res.course || '',
             createdAt: res.createdAt || new Date().toISOString(),
             notes: res.notes || '',
+            createdBy: res.createdBy || null,
+            userId: res.userId || null,
             isFixed: !!res.isFixed
           };
           batch.set(docRef, cleanRes);
@@ -60,7 +92,7 @@ export function subscribeToReservations(callback: (reservations: Reservation[]) 
         try {
           await batch.commit();
         } catch (err) {
-          console.error('Error seeding initial reservations:', err);
+          handleFirestoreError(err, OperationType.WRITE, RESERVATIONS_COLLECTION);
         }
         return;
       }
@@ -85,14 +117,31 @@ export function subscribeToReservations(callback: (reservations: Reservation[]) 
         course: data.course || '',
         createdAt: data.createdAt || new Date().toISOString(),
         notes: data.notes || '',
+        createdBy: data.createdBy || undefined,
+        userId: data.userId || undefined,
         isFixed: !!data.isFixed
       });
     });
 
+    try {
+      localStorage.setItem('app_cached_reservations', JSON.stringify(reservationsList));
+    } catch (e) {
+      // Ignore quota errors
+    }
+
     callback(reservationsList);
   }, (error) => {
-    console.error('Real-time reservations listener error:', error);
-    callback([]);
+    handleFirestoreError(error, OperationType.GET, RESERVATIONS_COLLECTION);
+    try {
+      const cached = localStorage.getItem('app_cached_reservations');
+      if (cached) {
+        callback(JSON.parse(cached));
+        return;
+      }
+    } catch (e) {
+      // Ignore JSON parse errors
+    }
+    callback(generateSampleReservationsForCurrentWeek());
   });
 }
 
@@ -123,7 +172,7 @@ export function subscribeToFixedSchedules(callback: (schedules: FixedSchedule[])
       try {
         await batch.commit();
       } catch (err) {
-        console.error('Error seeding initial fixed schedules:', err);
+        handleFirestoreError(err, OperationType.WRITE, FIXED_SCHEDULES_COLLECTION);
       }
       return;
     }
@@ -142,9 +191,24 @@ export function subscribeToFixedSchedules(callback: (schedules: FixedSchedule[])
       });
     });
 
+    try {
+      localStorage.setItem('app_cached_fixed_schedules', JSON.stringify(schedulesList));
+    } catch (e) {
+      // Ignore
+    }
+
     callback(schedulesList);
   }, (error) => {
-    console.error('Real-time fixed schedules listener error:', error);
+    handleFirestoreError(error, OperationType.GET, FIXED_SCHEDULES_COLLECTION);
+    try {
+      const cached = localStorage.getItem('app_cached_fixed_schedules');
+      if (cached) {
+        callback(JSON.parse(cached));
+        return;
+      }
+    } catch (e) {
+      // Ignore
+    }
     callback(INITIAL_FIXED_SCHEDULES);
   });
 }
@@ -165,9 +229,16 @@ export async function addReservationToDb(reservation: Omit<Reservation, 'id'> & 
     course: reservation.course || '',
     createdAt: reservation.createdAt || new Date().toISOString(),
     notes: reservation.notes || '',
+    createdBy: reservation.createdBy || undefined,
+    userId: reservation.userId || undefined,
     isFixed: !!reservation.isFixed
   };
-  await setDoc(docRef, dataToSave);
+  try {
+    await setDoc(docRef, dataToSave);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `${RESERVATIONS_COLLECTION}/${id}`);
+    throw error;
+  }
   return id;
 }
 
@@ -183,7 +254,12 @@ export async function updateReservationInDb(id: string, updates: Partial<Reserva
       cleanUpdates[key] = val;
     }
   });
-  await updateDoc(docRef, cleanUpdates);
+  try {
+    await updateDoc(docRef, cleanUpdates);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `${RESERVATIONS_COLLECTION}/${id}`);
+    throw error;
+  }
 }
 
 /**
@@ -191,7 +267,12 @@ export async function updateReservationInDb(id: string, updates: Partial<Reserva
  */
 export async function deleteReservationFromDb(id: string): Promise<void> {
   const docRef = doc(db, RESERVATIONS_COLLECTION, id);
-  await deleteDoc(docRef);
+  try {
+    await deleteDoc(docRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${RESERVATIONS_COLLECTION}/${id}`);
+    throw error;
+  }
 }
 
 /**
@@ -204,7 +285,12 @@ export async function addFixedScheduleToDb(schedule: Omit<FixedSchedule, 'id'> &
     ...schedule,
     id
   };
-  await setDoc(docRef, dataToSave);
+  try {
+    await setDoc(docRef, dataToSave);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `${FIXED_SCHEDULES_COLLECTION}/${id}`);
+    throw error;
+  }
   return id;
 }
 
@@ -213,7 +299,12 @@ export async function addFixedScheduleToDb(schedule: Omit<FixedSchedule, 'id'> &
  */
 export async function updateFixedScheduleInDb(id: string, updates: Partial<FixedSchedule>): Promise<void> {
   const docRef = doc(db, FIXED_SCHEDULES_COLLECTION, id);
-  await updateDoc(docRef, updates);
+  try {
+    await updateDoc(docRef, updates);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `${FIXED_SCHEDULES_COLLECTION}/${id}`);
+    throw error;
+  }
 }
 
 /**
@@ -221,5 +312,11 @@ export async function updateFixedScheduleInDb(id: string, updates: Partial<Fixed
  */
 export async function deleteFixedScheduleFromDb(id: string): Promise<void> {
   const docRef = doc(db, FIXED_SCHEDULES_COLLECTION, id);
-  await deleteDoc(docRef);
+  try {
+    await deleteDoc(docRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${FIXED_SCHEDULES_COLLECTION}/${id}`);
+    throw error;
+  }
 }
+

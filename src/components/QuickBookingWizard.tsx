@@ -23,6 +23,7 @@ import { Resource, ResourceId, Reservation, FixedSchedule } from '../types';
 import { INITIAL_RESOURCES, TIME_SLOTS, INSTITUTIONAL_COURSES, getSubjectsForCourse, getMondayOfCurrentWeek, formatDateToYYYYMMDD } from '../data/initialData';
 import { getWeekDays, formatFriendlyDate } from '../utils/dateUtils';
 import { validateResourceAvailability } from '../utils/validation';
+import { getOrCreateUserId } from '../utils/userUtils';
 
 interface QuickBookingWizardProps {
   reservations: Reservation[];
@@ -345,6 +346,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
     if (!isSelectionValid) return;
 
     const sortedValidations = [...selectedSlotValidations].sort((a, b) => a.slotId - b.slotId);
+    const userId = getOrCreateUserId();
 
     sortedValidations.forEach((item) => {
       onConfirmReservation({
@@ -354,7 +356,9 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
         timeSlotId: item.slotId,
         course,
         subject: subject.trim() || 'Clase especial',
-        notes: notes.trim()
+        notes: notes.trim(),
+        createdBy: userId,
+        userId: userId
       });
     });
   };

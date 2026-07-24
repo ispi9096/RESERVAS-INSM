@@ -42,6 +42,8 @@ export interface Reservation {
   course: string; // Primary identifier: e.g., "1º Año A", "3º Año"
   createdAt: string;
   notes?: string;
+  createdBy?: string;
+  userId?: string;
   isFixed?: boolean;
 }
 

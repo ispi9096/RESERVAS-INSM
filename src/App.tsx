@@ -23,6 +23,7 @@ import { WeeklyScheduleView } from './components/WeeklyScheduleView';
 import { DailyOverviewView } from './components/DailyOverviewView';
 import { MyReservationsList } from './components/MyReservationsList';
 import { FixedSchedulesModal } from './components/FixedSchedulesModal';
+import { getOrCreateUserId } from './utils/userUtils';
 import { ReservationConfirmationModal } from './components/ReservationConfirmationModal';
 import { PrintNoticeBoard } from './components/PrintNoticeBoard';
 
@@ -88,11 +89,14 @@ export default function App() {
   const handleConfirmNewReservation = async (data: Omit<Reservation, 'id' | 'createdAt'>) => {
     const newResId = `RES-${Math.floor(1000 + Math.random() * 9000)}`;
     const createdAt = new Date().toISOString();
+    const uid = getOrCreateUserId();
     
     const newRes: Reservation = {
       ...data,
       id: newResId,
-      createdAt
+      createdAt,
+      createdBy: data.createdBy || uid,
+      userId: data.userId || uid
     };
 
     try {

@@ -15,6 +15,7 @@ import {
 import { Reservation } from '../types';
 import { INITIAL_RESOURCES, TIME_SLOTS } from '../data/initialData';
 import { formatFriendlyDate } from '../utils/dateUtils';
+import { getOrCreateUserId } from '../utils/userUtils';
 
 interface MyReservationsListProps {
   reservations: Reservation[];
@@ -39,6 +40,9 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
   const [reservationToCancel, setReservationToCancel] = useState<Reservation | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
+  // Current user ID stored in localStorage
+  const currentUserId = React.useMemo(() => getOrCreateUserId(), []);
+
   // Get user's own reservation IDs from localStorage
   const myReservationIds = React.useMemo<string[]>(() => {
     try {
@@ -48,12 +52,25 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
     }
   }, [reservations]);
 
+  // Helper to determine if a reservation belongs to current user
+  const isMyReservation = React.useCallback((r: Reservation) => {
+    if (!r) return false;
+    if (r.createdBy && r.createdBy === currentUserId) return true;
+    if (r.userId && r.userId === currentUserId) return true;
+    if (myReservationIds.includes(r.id)) return true;
+    return false;
+  }, [currentUserId, myReservationIds]);
+
+  const myCount = React.useMemo(() => {
+    return (reservations || []).filter(isMyReservation).length;
+  }, [reservations, isMyReservation]);
+
   // Filter logic: Search by subject, course, date, resource and filterScope
   const filtered = (reservations || []).filter((r) => {
     try {
       if (!r) return false;
       if (filterScope === 'mine') {
-        if (!myReservationIds.includes(r.id)) return false;
+        if (!isMyReservation(r)) return false;
       }
       if (!searchQuery?.trim()) return true;
       const q = searchQuery.toLowerCase();
@@ -125,7 +142,7 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
           }`}
         >
           <User className="w-4 h-4" />
-          <span>Mis Reservas ({myReservationIds.filter(id => (reservations || []).some(r => r.id === id)).length})</span>
+          <span>Mis Reservas ({myCount})</span>
         </button>
 
         <button
