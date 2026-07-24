@@ -17,7 +17,8 @@ import {
   BookOpen,
   CheckSquare,
   Square,
-  ListChecks
+  ListChecks,
+  User
 } from 'lucide-react';
 import { Resource, ResourceId, Reservation, FixedSchedule } from '../types';
 import { INITIAL_RESOURCES, TIME_SLOTS, INSTITUTIONAL_COURSES, getSubjectsForCourse, getMondayOfCurrentWeek, formatDateToYYYYMMDD } from '../data/initialData';
@@ -374,6 +375,15 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   };
 
   // Form Fields
+  const [teacherName, setTeacherName] = useState<string>(() => {
+    return (
+      localStorage.getItem('app_teacher_name') ||
+      localStorage.getItem('app_teacher_identity') ||
+      localStorage.getItem('app_user_email') ||
+      localStorage.getItem('app_creator_id') ||
+      ''
+    );
+  });
   const [course, setCourse] = useState<string>(INSTITUTIONAL_COURSES[0]);
   const availableSubjects = useMemo(() => getSubjectsForCourse(course), [course]);
   const [subject, setSubject] = useState<string>(() => getSubjectsForCourse(INSTITUTIONAL_COURSES[0])[0] || '');
@@ -456,9 +466,10 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
       selectedTimeSlotIds.length > 0 &&
       isSelectionValid &&
       Boolean(course) &&
-      Boolean(subject && subject.trim())
+      Boolean(subject && subject.trim()) &&
+      Boolean(teacherName && teacherName.trim())
     );
-  }, [selectedTimeSlotIds.length, isSelectionValid, course, subject]);
+  }, [selectedTimeSlotIds.length, isSelectionValid, course, subject, teacherName]);
 
   const invalidSelectedSlots = useMemo(() => {
     return selectedSlotValidations.filter((item) => !item.status.isAvailable);
@@ -475,10 +486,16 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
     if (selectedTimeSlotIds.length === 0 || !isSelectionValid) return;
 
     const finalSubject = subject.trim() || availableSubjects[0] || 'Clase especial';
-    if (!course || !finalSubject) return;
+    const finalTeacher = teacherName.trim();
+    if (!course || !finalSubject || !finalTeacher) return;
+
+    // Save teacher identity to localStorage for future auto-complete and cross-device consistency
+    localStorage.setItem('app_teacher_name', finalTeacher);
+    localStorage.setItem('app_teacher_identity', finalTeacher);
+    localStorage.setItem('app_creator_id', finalTeacher);
+    localStorage.setItem('app_user_id', finalTeacher);
 
     const sortedValidations = [...selectedSlotValidations].sort((a, b) => a.slotId - b.slotId);
-    const userId = getOrCreateUserId();
 
     sortedValidations.forEach((item) => {
       onConfirmReservation({
@@ -489,8 +506,8 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
         course,
         subject: finalSubject,
         notes: notes.trim(),
-        createdBy: userId,
-        userId: userId
+        createdBy: finalTeacher,
+        userId: finalTeacher
       });
     });
   };
@@ -1246,6 +1263,34 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
 
           {/* Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Teacher / Docente (Nombre o Email Obligatorio) */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-black uppercase tracking-wider text-amber-500 mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-amber-500" />
+                  Nombre / Apellido o Email del Docente:
+                </span>
+                <span className="text-[10px] text-amber-700 font-extrabold bg-amber-100 px-2 py-0.5 rounded border border-amber-300">Obligatorio</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={teacherName}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setTeacherName(val);
+                  localStorage.setItem('app_teacher_name', val);
+                  localStorage.setItem('app_teacher_identity', val);
+                  localStorage.setItem('app_creator_id', val);
+                  localStorage.setItem('app_user_id', val);
+                }}
+                placeholder="Ej. Prof. María González o maria.gonzalez@escuela.edu"
+                className={`w-full px-4 py-3 rounded-xl border-2 font-bold text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-amber-400 ${
+                  isLight ? 'bg-white border-amber-500 text-slate-900 placeholder-slate-400' : 'bg-slate-800 border-amber-500/80 text-slate-100 placeholder-slate-500'
+                }`}
+              />
+            </div>
+
             {/* Course Selector (Campo Obligatorio) */}
             <div>
               <label className="block text-xs font-black uppercase tracking-wider text-sky-500 mb-1.5 flex items-center justify-between">
@@ -1282,21 +1327,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                 }`}>{currentLevel}</span>
               </label>
 
-              {/* Quick Filter Search Input */}
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Buscar o filtrar materia..."
-                  value={subjectSearch}
-                  onChange={(e) => setSubjectSearch(e.target.value)}
-                  className={`w-full pl-9 pr-3 py-2 rounded-xl text-xs placeholder-slate-400 focus:outline-none focus:border-emerald-500 border ${
-                    isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-700 text-slate-200'
-                  }`}
-                />
-              </div>
-
-              {/* Dynamic Select Dropdown (Filtered Strictly by Selected Course) */}
+              {/* Dynamic Select Dropdown (First Element) */}
               <select
                 required
                 value={subject}
@@ -1311,6 +1342,20 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                   </option>
                 ))}
               </select>
+
+              {/* Quick Filter Search Input (Second Element, Below Select) */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Buscar o filtrar materia..."
+                  value={subjectSearch}
+                  onChange={(e) => setSubjectSearch(e.target.value)}
+                  className={`w-full pl-9 pr-3 py-2 rounded-xl text-xs placeholder-slate-400 focus:outline-none focus:border-emerald-500 border ${
+                    isLight ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-900 border-slate-700 text-slate-200'
+                  }`}
+                />
+              </div>
 
               {/* Matching Result Tag Chips */}
               {subjectSearch && (

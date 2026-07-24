@@ -40,7 +40,18 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
   const [reservationToCancel, setReservationToCancel] = useState<Reservation | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  // Current user ID stored in localStorage
+  // Teacher name or email stored in localStorage or entered in UI
+  const [teacherIdentity, setTeacherIdentity] = useState<string>(() => {
+    return (
+      localStorage.getItem('app_teacher_name') ||
+      localStorage.getItem('app_teacher_identity') ||
+      localStorage.getItem('app_creator_id') ||
+      localStorage.getItem('app_user_id') ||
+      ''
+    );
+  });
+
+  // Current user ID stored in localStorage fallback
   const currentUserId = React.useMemo(() => getOrCreateUserId(), []);
 
   // Get user's own reservation IDs from localStorage
@@ -55,20 +66,37 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
   // Helper to determine if a reservation belongs to current user
   const isMyReservation = React.useCallback((r: Reservation) => {
     if (!r) return false;
-    const storedUserId = localStorage.getItem('app_user_id') || localStorage.getItem('app_creator_id') || currentUserId;
 
-    const isOwnerByUserId = Boolean(r.userId && (r.userId === storedUserId || r.userId === currentUserId));
-    const isOwnerByCreatedBy = Boolean(r.createdBy && (r.createdBy === storedUserId || r.createdBy === currentUserId));
+    const currentSavedIdentity = (
+      teacherIdentity ||
+      localStorage.getItem('app_teacher_name') ||
+      localStorage.getItem('app_teacher_identity') ||
+      localStorage.getItem('app_creator_id') ||
+      localStorage.getItem('app_user_id') ||
+      currentUserId
+    ).trim().toLowerCase();
+
+    if (!currentSavedIdentity) return false;
+
+    const rCreatedBy = (r.createdBy || '').trim().toLowerCase();
+    const rUserId = (r.userId || '').trim().toLowerCase();
+
+    const isMatchByCreatedBy = Boolean(
+      rCreatedBy && (rCreatedBy === currentSavedIdentity || rCreatedBy.includes(currentSavedIdentity) || currentSavedIdentity.includes(rCreatedBy))
+    );
+    const isMatchByUserId = Boolean(
+      rUserId && (rUserId === currentSavedIdentity || rUserId.includes(currentSavedIdentity) || currentSavedIdentity.includes(rUserId))
+    );
     const isOwnerByLocalStorageList = myReservationIds.includes(r.id);
 
-    return isOwnerByUserId || isOwnerByCreatedBy || isOwnerByLocalStorageList;
-  }, [currentUserId, myReservationIds]);
+    return isMatchByCreatedBy || isMatchByUserId || isOwnerByLocalStorageList;
+  }, [teacherIdentity, currentUserId, myReservationIds]);
 
   const myCount = React.useMemo(() => {
     return (reservations || []).filter(isMyReservation).length;
   }, [reservations, isMyReservation]);
 
-  // Filter logic: Search by subject, course, date, resource and filterScope
+  // Filter logic: Search by subject, course, docente/createdBy, date, resource and filterScope
   const filtered = (reservations || []).filter((r) => {
     try {
       if (!r) return false;
@@ -81,6 +109,8 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
       return (
         (r.course && r.course.toLowerCase().includes(q)) ||
         (r.subject && r.subject.toLowerCase().includes(q)) ||
+        (r.createdBy && r.createdBy.toLowerCase().includes(q)) ||
+        (r.userId && r.userId.toLowerCase().includes(q)) ||
         (r.date && r.date.includes(q)) ||
         (r.id && r.id.toLowerCase().includes(q))
       );
@@ -163,6 +193,36 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
           <span>Todas las Reservas ({reservations?.length || 0})</span>
         </button>
       </div>
+
+      {/* Teacher Identity Filter Bar for Mis Reservas */}
+      {filterScope === 'mine' && (
+        <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+          isLight ? 'bg-amber-50/90 border-amber-200 text-amber-900 shadow-sm' : 'bg-amber-950/40 border-amber-800/60 text-amber-200'
+        }`}>
+          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-600 shrink-0">
+            <User className="w-4 h-4 text-amber-500" />
+            <span>Docente Identificado:</span>
+          </div>
+          <div className="flex-1 max-w-md">
+            <input
+              type="text"
+              value={teacherIdentity}
+              onChange={(e) => {
+                const val = e.target.value;
+                setTeacherIdentity(val);
+                localStorage.setItem('app_teacher_name', val);
+                localStorage.setItem('app_teacher_identity', val);
+                localStorage.setItem('app_creator_id', val);
+                localStorage.setItem('app_user_id', val);
+              }}
+              placeholder="Ingresa tu Nombre/Apellido o Email..."
+              className={`w-full px-3.5 py-2 rounded-xl border text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                isLight ? 'bg-white border-amber-300 text-slate-900 placeholder-slate-400' : 'bg-slate-900 border-amber-700 text-slate-100 placeholder-slate-500'
+              }`}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Search Input Bar */}
       <div className="relative">
@@ -274,7 +334,12 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
                 <div className={`pt-3 border-t flex items-center justify-between text-xs ${
                   isLight ? 'border-slate-200' : 'border-slate-800'
                 }`}>
-                  <span className={`text-[11px] ${isLight ? 'text-slate-400' : 'text-slate-500'}`}>ID: #{r.id}</span>
+                  <div className="flex flex-col text-[11px]">
+                    <span className={`font-bold ${isLight ? 'text-amber-700' : 'text-amber-400'}`}>
+                      Docente: {r.createdBy || r.userId || 'Sin registrar'}
+                    </span>
+                    <span className={isLight ? 'text-slate-400' : 'text-slate-500'}>ID: #{r.id}</span>
+                  </div>
                   <button
                     onClick={() => setReservationToCancel(r)}
                     className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-colors border ${

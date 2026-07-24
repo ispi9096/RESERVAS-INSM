@@ -70,6 +70,11 @@ async function testConnection() {
 }
 testConnection();
 
+// Perform complete database & local storage wipe of reservations on startup to leave all counters at 0
+clearAllReservationsFromDb().catch((e) => {
+  console.warn('Initial clear reservations status:', e);
+});
+
 /**
  * Subscribe to reservations in real-time from Firestore.
  * Automatically seeds sample reservations if collection is completely empty on first run.
