@@ -1,25 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Resource, 
   ResourceId, 
   Reservation, 
   FixedSchedule, 
   ViewMode 
 } from './types';
 import { 
-  INITIAL_RESOURCES, 
   INITIAL_FIXED_SCHEDULES, 
-  generateSampleReservationsForCurrentWeek,
-  getMondayOfCurrentWeek,
-  formatDateToYYYYMMDD
+  generateSampleReservationsForCurrentWeek
 } from './data/initialData';
 
 import {
   subscribeToReservations,
   subscribeToFixedSchedules,
   addReservationToDb,
-  deleteReservationFromDb,
-  addFixedScheduleToDb
+  deleteReservationFromDb
 } from './lib/firebase';
 
 import { Header } from './components/Header';
@@ -30,7 +25,6 @@ import { MyReservationsList } from './components/MyReservationsList';
 import { FixedSchedulesModal } from './components/FixedSchedulesModal';
 import { ReservationConfirmationModal } from './components/ReservationConfirmationModal';
 import { PrintNoticeBoard } from './components/PrintNoticeBoard';
-import { Wifi, RefreshCw } from 'lucide-react';
 
 export default function App() {
   // View Mode
