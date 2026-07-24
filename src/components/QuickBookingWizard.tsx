@@ -20,7 +20,7 @@ import {
   ListChecks
 } from 'lucide-react';
 import { Resource, ResourceId, Reservation, FixedSchedule } from '../types';
-import { INITIAL_RESOURCES, TIME_SLOTS, INSTITUTIONAL_COURSES, OFFICIAL_SUBJECTS_BY_LEVEL, getMondayOfCurrentWeek, formatDateToYYYYMMDD } from '../data/initialData';
+import { INITIAL_RESOURCES, TIME_SLOTS, INSTITUTIONAL_COURSES, getSubjectsForCourse, getMondayOfCurrentWeek, formatDateToYYYYMMDD } from '../data/initialData';
 import { getWeekDays, formatFriendlyDate } from '../utils/dateUtils';
 import { validateResourceAvailability } from '../utils/validation';
 
@@ -81,7 +81,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
 
   // Step State (1: Recurso, 2: Día y Módulo, 3: Confirmar)
   const [step, setStep] = useState<1 | 2 | 3>(
-    preselectedResourceId && preselectedDate && preselectedTimeSlotId && isPreselectedAvailable ? 3 : 2
+    preselectedResourceId && preselectedDate && preselectedTimeSlotId && isPreselectedAvailable ? 2 : 1
   );
   
   // Multi-selection of time slots (e.g. [1, 2, 3])
@@ -214,10 +214,10 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
     }
   }, [selectedResourceId]);
 
-  // Clear occupied slots when date changes
+  // Clear occupied slots when date, resource, or realtime reservations change
   useEffect(() => {
     clearOccupiedSlots();
-  }, [selectedDateStr]);
+  }, [selectedDateStr, selectedResourceId, reservations, fixedSchedules]);
 
   // Quick select helper: All morning available slots
   const selectAllAvailableMorning = () => {
@@ -272,7 +272,8 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
 
   // Form Fields
   const [course, setCourse] = useState<string>(INSTITUTIONAL_COURSES[0]);
-  const [subject, setSubject] = useState<string>(OFFICIAL_SUBJECTS_BY_LEVEL[0].subjects[0]);
+  const availableSubjects = useMemo(() => getSubjectsForCourse(course), [course]);
+  const [subject, setSubject] = useState<string>(() => getSubjectsForCourse(INSTITUTIONAL_COURSES[0])[0] || '');
   const [subjectSearch, setSubjectSearch] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
 
@@ -296,25 +297,12 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   // Handle Course Change with Auto-Reset for Subject
   const handleCourseChange = (newCourse: string) => {
     setCourse(newCourse);
-    const newLevel = detectLevelFromCourse(newCourse);
-    const newLevelGroup = OFFICIAL_SUBJECTS_BY_LEVEL.find(g => g.level === newLevel);
-    if (newLevelGroup) {
-      const isSubjectInNewLevel = newLevelGroup.subjects.includes(subject);
-      if (!isSubjectInNewLevel) {
-        setSubject(newLevelGroup.subjects[0] || '');
-      }
+    setSubjectSearch('');
+    const newSubjects = getSubjectsForCourse(newCourse);
+    if (!newSubjects.includes(subject)) {
+      setSubject(newSubjects[0] || '');
     }
   };
-
-  // Group Subject List with Primary Level First
-  const sortedSubjectGroups = useMemo(() => {
-    const primaryGroup = OFFICIAL_SUBJECTS_BY_LEVEL.find(g => g.level === currentLevel);
-    const otherGroups = OFFICIAL_SUBJECTS_BY_LEVEL.filter(g => g.level !== currentLevel);
-    return [
-      ...(primaryGroup ? [primaryGroup] : []),
-      ...otherGroups
-    ];
-  }, [currentLevel]);
 
   // Live Validation for all selected time slots
   const selectedSlotValidations = useMemo(() => {
@@ -887,16 +875,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                 </div>
               </div>
             </div>
-          ) : (
-            <div className={`p-3.5 rounded-2xl border flex items-center gap-3 ${
-              isLight ? 'bg-emerald-100 border-emerald-300 text-emerald-950' : 'bg-emerald-950/60 border-emerald-700/60 text-emerald-200'
-            }`}>
-              <CheckCircle2 className={`w-5 h-5 shrink-0 ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`} />
-              <div className="text-xs font-semibold">
-                <strong>¡{selectedTimeSlotIds.length} Módulo(s) Disponible(s)!</strong> {selectedResource.name} está totalmente libre para {formatFriendlyDate(selectedDateStr)} en los módulos marcados ({selectedSlotValidations.map(v => v.slot?.label).join(', ')}).
-              </div>
-            </div>
-          )}
+          ) : null}
 
           <div className="pt-4 flex items-center justify-between gap-3">
             <button
@@ -1023,7 +1002,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                 />
               </div>
 
-              {/* Grouped Select Dropdown (Prioritized by Level) */}
+              {/* Dynamic Select Dropdown (Filtered Strictly by Selected Course) */}
               <select
                 required
                 value={subject}
@@ -1032,25 +1011,13 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                   isLight ? 'bg-white border-emerald-500 text-slate-900' : 'bg-slate-800 border-emerald-500/80 text-slate-100'
                 }`}
               >
-                {sortedSubjectGroups.map((group) => {
-                  const isPrimary = group.level === currentLevel;
-                  const filteredSubjects = group.subjects.filter(s =>
-                    !subjectSearch || s.toLowerCase().includes(subjectSearch.toLowerCase())
-                  );
-                  if (filteredSubjects.length === 0) return null;
-                  return (
-                    <optgroup
-                      key={group.level}
-                      label={isPrimary ? `★ ${group.level} (Selección Sugerida)` : `— ${group.level} —`}
-                    >
-                      {filteredSubjects.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </optgroup>
-                  );
-                })}
+                {availableSubjects
+                  .filter(s => !subjectSearch || s.toLowerCase().includes(subjectSearch.toLowerCase()))
+                  .map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
               </select>
 
               {/* Matching Result Tag Chips */}
@@ -1058,26 +1025,25 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                 <div className={`flex flex-wrap gap-1 mt-1.5 max-h-24 overflow-y-auto p-1.5 rounded-xl border ${
                   isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-900/90 border-slate-800'
                 }`}>
-                  {sortedSubjectGroups.flatMap(g => g.subjects.map(s => ({ subject: s, level: g.level })))
-                    .filter(item => item.subject.toLowerCase().includes(subjectSearch.toLowerCase()))
-                    .map(item => (
+                  {availableSubjects
+                    .filter(s => s.toLowerCase().includes(subjectSearch.toLowerCase()))
+                    .map(s => (
                       <button
-                        key={item.subject}
+                        key={s}
                         type="button"
                         onClick={() => {
-                          setSubject(item.subject);
+                          setSubject(s);
                           setSubjectSearch('');
                         }}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
-                          subject === item.subject 
+                          subject === s 
                             ? 'bg-emerald-500 text-slate-950 font-black shadow' 
                             : isLight
                               ? 'bg-white hover:bg-slate-200 text-slate-800 border border-slate-300'
                               : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
                         }`}
                       >
-                        <span>{item.subject}</span>
-                        <span className="text-[9px] opacity-75 uppercase">({item.level.replace('NIVEL ', '')})</span>
+                        <span>{s}</span>
                       </button>
                     ))}
                 </div>

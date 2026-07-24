@@ -8,7 +8,9 @@ import {
   Monitor, 
   RotateCcw,
   PlusCircle,
-  AlertCircle
+  AlertCircle,
+  User,
+  Globe
 } from 'lucide-react';
 import { Reservation } from '../types';
 import { INITIAL_RESOURCES, TIME_SLOTS } from '../data/initialData';
@@ -32,20 +34,34 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
   highContrast = false
 }) => {
   const isLight = lightMode;
+  const [filterScope, setFilterScope] = useState<'mine' | 'all'>('mine');
   const [searchQuery, setSearchQuery] = useState('');
   const [reservationToCancel, setReservationToCancel] = useState<Reservation | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  // Filter logic: Search by subject, course, date, resource
+  // Get user's own reservation IDs from localStorage
+  const myReservationIds = React.useMemo<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('app_my_reservation_ids') || '[]');
+    } catch {
+      return [];
+    }
+  }, [reservations]);
+
+  // Filter logic: Search by subject, course, date, resource and filterScope
   const filtered = (reservations || []).filter((r) => {
     try {
       if (!r) return false;
+      if (filterScope === 'mine') {
+        if (!myReservationIds.includes(r.id)) return false;
+      }
       if (!searchQuery?.trim()) return true;
       const q = searchQuery.toLowerCase();
       return (
         (r.course && r.course.toLowerCase().includes(q)) ||
         (r.subject && r.subject.toLowerCase().includes(q)) ||
-        (r.date && r.date.includes(q))
+        (r.date && r.date.includes(q)) ||
+        (r.id && r.id.toLowerCase().includes(q))
       );
     } catch {
       return false;
@@ -92,6 +108,39 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
             <RotateCcw className="w-4 h-4" />
           </button>
         </div>
+      </div>
+
+      {/* Scope Filter Tabs: Mis Reservas vs Todas las Reservas */}
+      <div className={`p-1.5 rounded-2xl border flex items-center gap-2 ${
+        isLight ? 'bg-slate-200/80 border-slate-300' : 'bg-slate-900 border-slate-800'
+      }`}>
+        <button
+          onClick={() => setFilterScope('mine')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+            filterScope === 'mine'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : isLight
+                ? 'text-slate-700 hover:bg-slate-300/60'
+                : 'text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <User className="w-4 h-4" />
+          <span>Mis Reservas ({myReservationIds.filter(id => (reservations || []).some(r => r.id === id)).length})</span>
+        </button>
+
+        <button
+          onClick={() => setFilterScope('all')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+            filterScope === 'all'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : isLight
+                ? 'text-slate-700 hover:bg-slate-300/60'
+                : 'text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <Globe className="w-4 h-4" />
+          <span>Todas las Reservas ({reservations?.length || 0})</span>
+        </button>
       </div>
 
       {/* Search Input Bar */}

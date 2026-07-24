@@ -97,6 +97,185 @@ export interface SubjectLevelGroup {
   subjects: string[];
 }
 
+export const SUBJECTS_BY_COURSE: Record<string, string[]> = {
+  '1º Año A (Secundario)': [
+    'BIOLOGÍA',
+    'EDUCACIÓN ARTÍSTICA (MÚSICA)',
+    'EDUCACIÓN FÍSICA',
+    'EDUCACIÓN TECNOLÓGICA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'FORMACIÓN ÉTICA Y CIUDADANA',
+    'GEOGRAFÍA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'LENGUA Y LITERATURA',
+    'MATEMÁTICA',
+    'TALLER DE ECONOMÍA Y ADMINISTRACIÓN'
+  ],
+  '1º Año B (Secundario)': [
+    'BIOLOGÍA',
+    'EDUCACIÓN ARTÍSTICA (MÚSICA)',
+    'EDUCACIÓN FÍSICA',
+    'EDUCACIÓN TECNOLÓGICA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'FORMACIÓN ÉTICA Y CIUDADANA',
+    'GEOGRAFÍA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'LENGUA Y LITERATURA',
+    'MATEMÁTICA',
+    'TALLER DE ECONOMÍA Y ADMINISTRACIÓN'
+  ],
+  '2º Año A (Secundario)': [
+    'EDUCACIÓN ARTÍSTICA (ARTES VISUALES)',
+    'EDUCACIÓN FÍSICA',
+    'FÍSICO-QUÍMICA',
+    'FORMACIÓN ÉTICA Y CIUDADANA',
+    'HISTORIA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'MATEMÁTICA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'TALLER DE ECONOMÍA Y ADMINISTRACIÓN',
+    'LENGUA Y LITERATURA',
+    'EDUCACIÓN TECNOLÓGICA'
+  ],
+  '2º Año B (Secundario)': [
+    'EDUCACIÓN ARTÍSTICA (ARTES VISUALES)',
+    'EDUCACIÓN FÍSICA',
+    'FÍSICO-QUÍMICA',
+    'FORMACIÓN ÉTICA Y CIUDADANA',
+    'HISTORIA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'MATEMÁTICA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'TALLER DE ECONOMÍA Y ADMINISTRACIÓN',
+    'LENGUA Y LITERATURA',
+    'EDUCACIÓN TECNOLÓGICA'
+  ],
+  '3º Año Nat (Secundario)': [
+    'BIOLOGÍA',
+    'CONSTRUCCIÓN DE CIUDADANÍA E IDENTIDAD',
+    'EDUCACIÓN FÍSICA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'FÍSICA',
+    'GEOGRAFÍA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'LENGUA Y LITERATURA',
+    'MATEMÁTICA',
+    'QUÍMICA',
+    'HISTORIA',
+    'EDUCACIÓN ARTÍSTICA'
+  ],
+  '3º Año Soc (Secundario)': [
+    'BIOLOGÍA',
+    'CONSTRUCCIÓN DE CIUDADANÍA E IDENTIDAD',
+    'ECONOMÍA',
+    'EDUCACIÓN FÍSICA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'FÍSICA',
+    'GEOGRAFÍA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'LENGUA Y LITERATURA',
+    'MATEMÁTICA',
+    'HISTORIA',
+    'EDUCACIÓN ARTÍSTICA'
+  ],
+  '4º Año Nat (Secundario)': [
+    'BIOLOGÍA',
+    'EDUCACIÓN FÍSICA',
+    'GEOGRAFÍA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'LENGUA Y LITERATURA',
+    'HISTORIA',
+    'FÍSICA',
+    'CONSTRUCCIÓN DE LA CIUDADANÍA Y PARTICIPACIÓN',
+    'SALUD Y ADOLESCENCIA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'QUÍMICA',
+    'MATEMÁTICA'
+  ],
+  '4º Año Soc (Secundario)': [
+    'EDUCACIÓN FÍSICA',
+    'GEOGRAFÍA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'LENGUA Y LITERATURA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'QUÍMICA',
+    'CIENCIAS DE LA COMUNICACIÓN',
+    'SOCIOLOGÍA',
+    'PSICOLOGÍA',
+    'MATEMÁTICA',
+    'CONSTRUCCIÓN DE LA CIUDADANÍA Y PARTICIPACIÓN',
+    'HISTORIA'
+  ],
+  '5º Año Nat (Secundario)': [
+    'BIOLOGÍA',
+    'EDUCACIÓN FÍSICA',
+    'LENGUA Y LITERATURA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'CONSTRUCCIÓN DE LA CIUDADANÍA Y DERECHO',
+    'FILOSOFÍA',
+    'ORIENTACIÓN CONTEXTOS LABORALES',
+    'CIENCIAS DE LA TIERRA',
+    'SALUD Y AMBIENTE',
+    'QUÍMICA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'MATEMÁTICA',
+    'FÍSICA'
+  ],
+  '5º Año Soc (Secundario)': [
+    'EDUCACIÓN FÍSICA',
+    'GEOGRAFÍA',
+    'LENGUA Y LITERATURA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'HISTORIA',
+    'CIENCIAS POLÍTICAS',
+    'CONSTRUCCIÓN DE LA CIUDADANÍA Y DERECHO',
+    'FILOSOFÍA',
+    'ORIENTACIÓN CONTEXTOS LABORALES',
+    'SEMINARIO DE INVESTIGACIÓN',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'MATEMÁTICA'
+  ]
+};
+
+export function getSubjectsForCourse(courseName: string): string[] {
+  if (!courseName) return SUBJECTS_BY_COURSE['1º Año A (Secundario)'];
+  if (SUBJECTS_BY_COURSE[courseName]) return SUBJECTS_BY_COURSE[courseName];
+
+  const lower = courseName.toLowerCase();
+  if (lower.includes('1º año') || lower.includes('1ºa') || lower.includes('1ºb')) {
+    return SUBJECTS_BY_COURSE['1º Año A (Secundario)'];
+  }
+  if (lower.includes('2º año') || lower.includes('2ºa') || lower.includes('2ºb')) {
+    return SUBJECTS_BY_COURSE['2º Año A (Secundario)'];
+  }
+  if (lower.includes('3º') && (lower.includes('nat') || lower.includes('3n'))) {
+    return SUBJECTS_BY_COURSE['3º Año Nat (Secundario)'];
+  }
+  if (lower.includes('3º') && (lower.includes('soc') || lower.includes('3s'))) {
+    return SUBJECTS_BY_COURSE['3º Año Soc (Secundario)'];
+  }
+  if (lower.includes('4º') && (lower.includes('nat') || lower.includes('4n'))) {
+    return SUBJECTS_BY_COURSE['4º Año Nat (Secundario)'];
+  }
+  if (lower.includes('4º') && (lower.includes('soc') || lower.includes('4s'))) {
+    return SUBJECTS_BY_COURSE['4º Año Soc (Secundario)'];
+  }
+  if (lower.includes('5º') && (lower.includes('nat') || lower.includes('5n'))) {
+    return SUBJECTS_BY_COURSE['5º Año Nat (Secundario)'];
+  }
+  if (lower.includes('5º') && (lower.includes('soc') || lower.includes('5s'))) {
+    return SUBJECTS_BY_COURSE['5º Año Soc (Secundario)'];
+  }
+  if (lower.includes('primario') || lower.includes('grado')) {
+    return ['Ciencias Naturales', 'Ciencias Sociales', 'Educación Tecnológica', 'Lengua y Literatura', 'Matemática', 'Educación Física', 'Inglés', 'Música', 'Plástica'];
+  }
+  if (lower.includes('inicial') || lower.includes('sala')) {
+    return ['Espacio Curricular', 'Expresión Corporal', 'Música', 'Juego y Desarrollo'];
+  }
+
+  return SUBJECTS_BY_COURSE['1º Año A (Secundario)'];
+}
+
 export const OFFICIAL_SUBJECTS_BY_LEVEL: SubjectLevelGroup[] = [
   {
     level: 'NIVEL SECUNDARIO',

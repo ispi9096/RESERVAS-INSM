@@ -97,6 +97,15 @@ export default function App() {
 
     try {
       await addReservationToDb(newRes);
+      try {
+        const storedMyIds: string[] = JSON.parse(localStorage.getItem('app_my_reservation_ids') || '[]');
+        if (!storedMyIds.includes(newResId)) {
+          storedMyIds.push(newResId);
+          localStorage.setItem('app_my_reservation_ids', JSON.stringify(storedMyIds));
+        }
+      } catch (e) {
+        console.error('Error updating app_my_reservation_ids in localStorage:', e);
+      }
       setConfirmedReservation(newRes);
       setPreselectedCell(null);
     } catch (err) {
