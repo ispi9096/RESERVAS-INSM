@@ -73,8 +73,8 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
       preselectedDate,
       selectedDayInfo.dayOfWeek,
       preselectedTimeSlotId,
-      reservations,
-      fixedSchedules
+      reservations || [],
+      fixedSchedules || []
     );
     return validation.isAvailable;
   }, [preselectedResourceId, preselectedDate, preselectedTimeSlotId, selectedDayInfo.dayOfWeek, reservations, fixedSchedules]);
@@ -101,8 +101,8 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
           selectedDateStr,
           selectedDayInfo.dayOfWeek,
           slotId,
-          reservations,
-          fixedSchedules
+          reservations || [],
+          fixedSchedules || []
         );
 
         if (clickedSlotStatus.isAvailable) {
@@ -113,8 +113,8 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
               selectedDateStr,
               selectedDayInfo.dayOfWeek,
               id,
-              reservations,
-              fixedSchedules
+              reservations || [],
+              fixedSchedules || []
             );
             return st.isAvailable;
           });
@@ -135,8 +135,8 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
           selectedDateStr,
           selectedDayInfo.dayOfWeek,
           id,
-          reservations,
-          fixedSchedules
+          reservations || [],
+          fixedSchedules || []
         ).isAvailable
       )
     );
@@ -149,8 +149,8 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
       selectedDateStr,
       selectedDayInfo.dayOfWeek,
       s.id,
-      reservations,
-      fixedSchedules
+      reservations || [],
+      fixedSchedules || []
     ).isAvailable).map(s => s.id);
     setSelectedTimeSlotIds(morningAvailable);
   };
@@ -162,8 +162,8 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
       selectedDateStr,
       selectedDayInfo.dayOfWeek,
       s.id,
-      reservations,
-      fixedSchedules
+      reservations || [],
+      fixedSchedules || []
     ).isAvailable).map(s => s.id);
     setSelectedTimeSlotIds(afternoonAvailable);
   };
@@ -374,16 +374,6 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {INITIAL_RESOURCES.map((resource) => {
               const isSelected = selectedResourceId === resource.id;
-              
-              // Get live availability for selected date & first selected slot
-              const status = validateResourceAvailability(
-                resource.id,
-                selectedDateStr,
-                selectedDayInfo.dayOfWeek,
-                selectedTimeSlotIds[0] || 1,
-                reservations,
-                fixedSchedules
-              );
 
               return (
                 <div
@@ -433,11 +423,9 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                   }`}>
                     <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>Ubicación: {resource.location}</span>
                     <span className={`px-2.5 py-1 rounded-lg border font-extrabold ${
-                      status.isAvailable
-                        ? isLight ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-emerald-950 text-emerald-300 border-emerald-700'
-                        : isLight ? 'bg-rose-100 text-rose-900 border-rose-300' : 'bg-rose-950 text-rose-300 border-rose-700'
+                      isLight ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-emerald-950/50 text-emerald-300 border-emerald-800/60'
                     }`}>
-                      {status.isAvailable ? '🟢 Libre' : '🔴 Ocupado'}
+                      Habilitado para reserva
                     </span>
                   </div>
                 </div>

@@ -233,21 +233,23 @@ export const WeeklyScheduleView: React.FC<WeeklyScheduleViewProps> = ({
                 {/* Day Columns */}
                 {weekDays.map((day) => {
                   const targetResId: ResourceId = selectedResourceId === 'all_projectors' ? 'proyector_1' : selectedResourceId;
+                  const safeReservations = Array.isArray(reservations) ? reservations : [];
+                  const safeFixedSchedules = Array.isArray(fixedSchedules) ? fixedSchedules : [];
 
                   const status = validateResourceAvailability(
                     selectedResourceId === 'all_projectors' ? 'any_proyector' : selectedResourceId,
                     day.dateStr,
                     day.dayOfWeek,
                     slot.id,
-                    reservations,
-                    fixedSchedules
+                    safeReservations,
+                    safeFixedSchedules
                   );
 
                   // Check if user has an active reservation here
-                  const existingUserReservation = reservations.find(
-                    r => (selectedResourceId === 'all_projectors' ? (r.resourceId === 'proyector_1' || r.resourceId === 'proyector_2') : r.resourceId === selectedResourceId)
-                         && r.date === day.dateStr 
-                         && r.timeSlotId === slot.id
+                  const existingUserReservation = safeReservations.find(
+                    r => r && (selectedResourceId === 'all_projectors' ? (r?.resourceId === 'proyector_1' || r?.resourceId === 'proyector_2') : r?.resourceId === selectedResourceId)
+                         && r?.date === day.dateStr 
+                         && Number(r?.timeSlotId) === Number(slot.id)
                   );
 
                   return (

@@ -25,21 +25,21 @@ export function validateResourceAvailability(
   // 1. Check Fixed Schedules
   const fixedMatch = safeFixedSchedules.find(f => {
     if (!f) return false;
-    if (f.dayOfWeek !== dayOfWeek || f.timeSlotId !== timeSlotId) return false;
+    if (Number(f?.dayOfWeek) !== Number(dayOfWeek) || Number(f?.timeSlotId) !== Number(timeSlotId)) return false;
     if (requestedResourceId === 'any_proyector') {
-      return f.resourceId === 'proyector_1' || f.resourceId === 'proyector_2' || f.resourceId === 'any_proyector';
+      return f?.resourceId === 'proyector_1' || f?.resourceId === 'proyector_2' || f?.resourceId === 'any_proyector';
     }
-    return f.resourceId === requestedResourceId;
+    return f?.resourceId === requestedResourceId;
   });
 
   if (fixedMatch) {
     return {
       isAvailable: false,
-      message: `Ocupado por Horario Fijo Curricular: ${fixedMatch.subject || 'Materia'} (${fixedMatch.course || 'Curso'})`,
-      course: fixedMatch.course || '',
-      subject: fixedMatch.subject || '',
+      message: `Ocupado por Horario Fijo Curricular: ${fixedMatch?.subject || 'Materia'} (${fixedMatch?.course || 'Curso'})`,
+      course: fixedMatch?.course || '',
+      subject: fixedMatch?.subject || '',
       isFixed: true,
-      assignedResourceId: fixedMatch.resourceId === 'any_proyector' ? 'proyector_1' : fixedMatch.resourceId
+      assignedResourceId: fixedMatch?.resourceId === 'any_proyector' ? 'proyector_1' : fixedMatch?.resourceId
     };
   }
 
@@ -81,27 +81,27 @@ function isSpecificResourceBooked(
   const safeFixedSchedules = Array.isArray(fixedSchedules) ? fixedSchedules : [];
 
   // Check fixed schedules for this specific resource
-  const fixed = safeFixedSchedules.find(f => f && f.dayOfWeek === dayOfWeek && f.timeSlotId === timeSlotId && (f.resourceId === resourceId || f.resourceId === 'any_proyector'));
+  const fixed = safeFixedSchedules.find(f => f && Number(f?.dayOfWeek) === Number(dayOfWeek) && Number(f?.timeSlotId) === Number(timeSlotId) && (f?.resourceId === resourceId || f?.resourceId === 'any_proyector'));
   if (fixed) {
     return {
       isAvailable: false,
-      message: `🔒 Horario Fijo Curricular: ${fixed.subject || 'Materia'} - ${fixed.course || 'Curso'}`,
-      course: fixed.course || '',
-      subject: fixed.subject || '',
+      message: `🔒 Horario Fijo Curricular: ${fixed?.subject || 'Materia'} - ${fixed?.course || 'Curso'}`,
+      course: fixed?.course || '',
+      subject: fixed?.subject || '',
       isFixed: true,
       assignedResourceId: resourceId
     };
   }
 
   // Check user reservations
-  const existing = safeReservations.find(r => r && r.resourceId === resourceId && r.date === dateStr && r.timeSlotId === timeSlotId);
+  const existing = safeReservations.find(r => r && r?.resourceId === resourceId && r?.date === dateStr && Number(r?.timeSlotId) === Number(timeSlotId));
   if (existing) {
     const resourceName = INITIAL_RESOURCES.find(res => res.id === resourceId)?.name || resourceId;
     return {
       isAvailable: false,
-      message: `⚠️ ${resourceName} ya reservado para ${existing.subject || 'Clase'} (${existing.course || ''})`,
-      course: existing.course || '',
-      subject: existing.subject || '',
+      message: `⚠️ ${resourceName} ya reservado para ${existing?.subject || 'Clase'} (${existing?.course || ''})`,
+      course: existing?.course || '',
+      subject: existing?.subject || '',
       isFixed: false,
       assignedResourceId: resourceId
     };
@@ -118,11 +118,11 @@ export function getProjectorsAvailabilityCount(
   dateStr: string,
   dayOfWeek: number,
   timeSlotId: number,
-  reservations: Reservation[],
-  fixedSchedules: FixedSchedule[]
+  reservations: Reservation[] = [],
+  fixedSchedules: FixedSchedule[] = []
 ): { total: number; availableCount: number; p1Available: boolean; p2Available: boolean } {
-  const p1 = isSpecificResourceBooked('proyector_1', dateStr, dayOfWeek, timeSlotId, reservations, fixedSchedules);
-  const p2 = isSpecificResourceBooked('proyector_2', dateStr, dayOfWeek, timeSlotId, reservations, fixedSchedules);
+  const p1 = isSpecificResourceBooked('proyector_1', dateStr, dayOfWeek, timeSlotId, reservations || [], fixedSchedules || []);
+  const p2 = isSpecificResourceBooked('proyector_2', dateStr, dayOfWeek, timeSlotId, reservations || [], fixedSchedules || []);
 
   let availableCount = 0;
   if (p1.isAvailable) availableCount++;
