@@ -55,10 +55,13 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
   // Helper to determine if a reservation belongs to current user
   const isMyReservation = React.useCallback((r: Reservation) => {
     if (!r) return false;
-    if (r.createdBy && r.createdBy === currentUserId) return true;
-    if (r.userId && r.userId === currentUserId) return true;
-    if (myReservationIds.includes(r.id)) return true;
-    return false;
+    const storedUserId = localStorage.getItem('app_user_id') || localStorage.getItem('app_creator_id') || currentUserId;
+
+    const isOwnerByUserId = Boolean(r.userId && (r.userId === storedUserId || r.userId === currentUserId));
+    const isOwnerByCreatedBy = Boolean(r.createdBy && (r.createdBy === storedUserId || r.createdBy === currentUserId));
+    const isOwnerByLocalStorageList = myReservationIds.includes(r.id);
+
+    return isOwnerByUserId || isOwnerByCreatedBy || isOwnerByLocalStorageList;
   }, [currentUserId, myReservationIds]);
 
   const myCount = React.useMemo(() => {
@@ -69,7 +72,8 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
   const filtered = (reservations || []).filter((r) => {
     try {
       if (!r) return false;
-      if (filterScope === 'mine') {
+      const isMineTab = filterScope === 'mine' || (filterScope as string) === 'my';
+      if (isMineTab) {
         if (!isMyReservation(r)) return false;
       }
       if (!searchQuery?.trim()) return true;

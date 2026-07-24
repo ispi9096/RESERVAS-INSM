@@ -9,7 +9,8 @@ import {
   deleteDoc, 
   updateDoc, 
   getDocs,
-  writeBatch
+  writeBatch,
+  getDocFromServer
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { Reservation, FixedSchedule } from '../types';
@@ -43,8 +44,9 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errMessage = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMessage,
     authInfo: {
       userId: localStorage.getItem('app_user_id') || null,
     },
@@ -52,7 +54,21 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   };
   console.warn('Firestore Operation Status:', JSON.stringify(errInfo));
+  if (errMessage.includes('permission-denied') || errMessage.includes('Missing or insufficient permissions')) {
+    throw new Error(JSON.stringify(errInfo));
+  }
 }
+
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('unavailable'))) {
+      console.warn("Firestore running with local offline fallback cache.");
+    }
+  }
+}
+testConnection();
 
 /**
  * Subscribe to reservations in real-time from Firestore.
