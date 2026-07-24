@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { Resource, ResourceId, Reservation, FixedSchedule } from '../types';
 import { INITIAL_RESOURCES, TIME_SLOTS, INSTITUTIONAL_COURSES, getSubjectsForCourse, getMondayOfCurrentWeek, formatDateToYYYYMMDD } from '../data/initialData';
-import { getWeekDays, formatFriendlyDate } from '../utils/dateUtils';
+import { getWeekDays, formatFriendlyDate, isPastDate } from '../utils/dateUtils';
 import { validateResourceAvailability } from '../utils/validation';
 import { getOrCreateUserId } from '../utils/userUtils';
 
@@ -48,13 +48,37 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
 }) => {
   const isLight = lightMode;
 
-  // Week setup
-  const mondayDate = useMemo(() => getMondayOfCurrentWeek(), []);
-  const weekDays = useMemo(() => getWeekDays(mondayDate), [mondayDate]);
+  // Today's date YYYY-MM-DD
+  const todayStr = useMemo(() => formatDateToYYYYMMDD(new Date()), []);
 
-  const initialDateStr = preselectedDate || (weekDays && weekDays.length > 0 ? weekDays[0].dateStr : '');
+  // Base Monday date state for week navigation
+  const initialMonday = useMemo(() => {
+    if (preselectedDate) {
+      try {
+        const parts = preselectedDate.split('-').map(Number);
+        if (parts.length === 3) {
+          return getMondayOfCurrentWeek(new Date(parts[0], parts[1] - 1, parts[2]));
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return getMondayOfCurrentWeek(new Date());
+  }, [preselectedDate]);
 
-  // Selected Resource
+  const [currentMonday, setCurrentMonday] = useState<Date>(initialMonday);
+
+  const weekDays = useMemo(() => getWeekDays(currentMonday), [currentMonday]);
+
+  // Initial date selection: preselectedDate OR today (if in weekDays) OR first valid upcoming day
+  const initialDateStr = useMemo(() => {
+    if (preselectedDate) return preselectedDate;
+    if (weekDays.some(d => d.dateStr === todayStr)) return todayStr;
+    const firstUpcoming = weekDays.find(d => d.dateStr >= todayStr);
+    return firstUpcoming ? firstUpcoming.dateStr : (weekDays[0]?.dateStr || todayStr);
+  }, [preselectedDate, weekDays, todayStr]);
+
+  // Selected Resource & Selected Date
   const [selectedResourceId, setSelectedResourceId] = useState<ResourceId>(preselectedResourceId || 'proyector_1');
   const [selectedDateStr, setSelectedDateStr] = useState<string>(initialDateStr);
 
@@ -65,6 +89,71 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
     if (weekDays && weekDays.length > 0) return weekDays[0];
     return { dayOfWeek: 1, dateStr: selectedDateStr, name: 'Lunes', short: 'Lun', date: new Date(), formattedDay: '' };
   }, [weekDays, selectedDateStr]);
+
+  // Check if currently viewing the current week
+  const isViewingCurrentWeek = useMemo(() => {
+    const nowMonday = getMondayOfCurrentWeek(new Date());
+    return formatDateToYYYYMMDD(nowMonday) === formatDateToYYYYMMDD(currentMonday);
+  }, [currentMonday]);
+
+  // Range label for the active week
+  const weekRangeLabel = useMemo(() => {
+    if (!weekDays || weekDays.length === 0) return '';
+    const first = weekDays[0];
+    const last = weekDays[weekDays.length - 1];
+    return `Semana del ${first.formattedDay} al ${last.formattedDay}/${last.date.getFullYear()}`;
+  }, [weekDays]);
+
+  // Week Navigation Handlers
+  const handlePrevWeek = () => {
+    const prev = new Date(currentMonday);
+    prev.setDate(prev.getDate() - 7);
+    setCurrentMonday(prev);
+    const newWeekDays = getWeekDays(prev);
+    if (newWeekDays.some(d => d.dateStr === todayStr)) {
+      setSelectedDateStr(todayStr);
+    } else {
+      const firstUpcoming = newWeekDays.find(d => d.dateStr >= todayStr);
+      setSelectedDateStr(firstUpcoming ? firstUpcoming.dateStr : newWeekDays[0].dateStr);
+    }
+  };
+
+  const handleNextWeek = () => {
+    const next = new Date(currentMonday);
+    next.setDate(next.getDate() + 7);
+    setCurrentMonday(next);
+    const newWeekDays = getWeekDays(next);
+    if (newWeekDays.some(d => d.dateStr === todayStr)) {
+      setSelectedDateStr(todayStr);
+    } else {
+      const firstUpcoming = newWeekDays.find(d => d.dateStr >= todayStr);
+      setSelectedDateStr(firstUpcoming ? firstUpcoming.dateStr : newWeekDays[0].dateStr);
+    }
+  };
+
+  const handleCurrentWeek = () => {
+    const nowMonday = getMondayOfCurrentWeek(new Date());
+    setCurrentMonday(nowMonday);
+    const newWeekDays = getWeekDays(nowMonday);
+    if (newWeekDays.some(d => d.dateStr === todayStr)) {
+      setSelectedDateStr(todayStr);
+    } else {
+      const firstUpcoming = newWeekDays.find(d => d.dateStr >= todayStr);
+      setSelectedDateStr(firstUpcoming ? firstUpcoming.dateStr : newWeekDays[0].dateStr);
+    }
+  };
+
+  const handleDatePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (!val) return;
+    const parts = val.split('-').map(Number);
+    if (parts.length === 3) {
+      const selectedDateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+      const newMonday = getMondayOfCurrentWeek(selectedDateObj);
+      setCurrentMonday(newMonday);
+      setSelectedDateStr(val);
+    }
+  };
 
   // Check if preselected slot is actually available
   const isPreselectedAvailable = useMemo(() => {
@@ -117,6 +206,15 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   const toggleTimeSlot = (slotId: number) => {
     try {
       if (!slotId) return;
+      if (isPastDate(selectedDateStr, slotId)) {
+        setOccupiedNotice({
+          slotLabel: TIME_SLOTS.find(s => s.id === slotId)?.label,
+          subject: 'Módulo Pasado',
+          course: 'Tiempo Transcurrido',
+          message: 'Este módulo ya transcurrió. No es posible realizar reservas para fechas u horarios pasados.'
+        });
+        return;
+      }
       setSelectedTimeSlotIds((prev = []) => {
         const safePrev = Array.isArray(prev) ? prev : [];
         if (safePrev.includes(slotId)) {
@@ -144,7 +242,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                     reservations || [],
                     fixedSchedules || []
                   );
-                  return st?.isAvailable;
+                  return st?.isAvailable && !isPastDate(selectedDateStr, id);
                 } catch {
                   return false;
                 }
@@ -160,7 +258,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                     id,
                     reservations || [],
                     fixedSchedules || []
-                  )?.isAvailable;
+                  )?.isAvailable && !isPastDate(selectedDateStr, id);
                 } catch {
                   return false;
                 }
@@ -220,12 +318,14 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
     clearOccupiedSlots();
   }, [selectedDateStr, selectedResourceId, reservations, fixedSchedules]);
 
-  // Quick select helper: All morning available slots
+  // Quick select helper: All morning available slots (excluding past)
   const selectAllAvailableMorning = () => {
     try {
       const morningAvailable = TIME_SLOTS.filter(s => {
         try {
-          return s && s.id <= 8 && validateResourceAvailability(
+          if (!s || s.id > 8) return false;
+          if (isPastDate(selectedDateStr, s.id)) return false;
+          return validateResourceAvailability(
             selectedResourceId || 'proyector_1',
             selectedDateStr || '',
             selectedDayInfo?.dayOfWeek || 1,
@@ -243,12 +343,14 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
     }
   };
 
-  // Quick select helper: All afternoon available slots
+  // Quick select helper: All afternoon available slots (excluding past)
   const selectAllAvailableAfternoon = () => {
     try {
       const afternoonAvailable = TIME_SLOTS.filter(s => {
         try {
-          return s && s.id >= 9 && validateResourceAvailability(
+          if (!s || s.id < 9) return false;
+          if (isPastDate(selectedDateStr, s.id)) return false;
+          return validateResourceAvailability(
             selectedResourceId || 'proyector_1',
             selectedDateStr || '',
             selectedDayInfo?.dayOfWeek || 1,
@@ -560,6 +662,86 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
             </div>
           </div>
 
+          {/* Week Navigation Header Controls */}
+          <div className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-3 ${
+            isLight ? 'bg-slate-100/90 border-slate-200 shadow-xs' : 'bg-slate-900/90 border-slate-800'
+          }`}>
+            {/* Previous / Next Week */}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+              <button
+                type="button"
+                onClick={handlePrevWeek}
+                className={`px-3 py-2 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 ${
+                  isLight
+                    ? 'bg-white hover:bg-slate-200 text-slate-700 border-slate-300'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                }`}
+                title="Semana Anterior"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden xs:inline">Semana Anterior</span>
+              </button>
+
+              <div className="text-center sm:text-left px-2">
+                <div className={`text-xs font-black uppercase tracking-wider flex items-center justify-center sm:justify-start gap-1.5 ${
+                  isLight ? 'text-slate-800' : 'text-slate-100'
+                }`}>
+                  <CalendarIcon className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>{weekRangeLabel}</span>
+                </div>
+                {isViewingCurrentWeek && (
+                  <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block">
+                    • Semana Actual •
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleNextWeek}
+                className={`px-3 py-2 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 ${
+                  isLight
+                    ? 'bg-white hover:bg-slate-200 text-slate-700 border-slate-300'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                }`}
+                title="Semana Siguiente"
+              >
+                <span className="hidden xs:inline">Semana Siguiente</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Go to Current Week & Date Picker */}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+              {!isViewingCurrentWeek && (
+                <button
+                  type="button"
+                  onClick={handleCurrentWeek}
+                  className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border ${
+                    isLight
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                      : 'bg-emerald-950/60 text-emerald-300 border-emerald-700 hover:bg-emerald-900/80'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Semana Actual</span>
+                </button>
+              )}
+
+              <input
+                type="date"
+                value={selectedDateStr}
+                onChange={handleDatePickerChange}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                  isLight
+                    ? 'bg-white border-slate-300 text-slate-800 hover:border-emerald-500'
+                    : 'bg-slate-800 border-slate-700 text-slate-200 hover:border-emerald-500'
+                }`}
+                title="Seleccionar fecha específica"
+              />
+            </div>
+          </div>
+
           {/* 1. Day Selection Tabs */}
           <div>
             <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
@@ -568,24 +750,52 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {weekDays.map((day) => {
                 const isSelected = selectedDateStr === day.dateStr;
+                const isPastDay = day.dateStr < todayStr;
+                const isToday = day.dateStr === todayStr;
+
                 return (
                   <button
                     key={day.dateStr}
-                    onClick={() => setSelectedDateStr(day.dateStr)}
-                    className={`p-3 rounded-xl border text-center transition-all ${
-                      isSelected
+                    type="button"
+                    disabled={isPastDay}
+                    onClick={() => {
+                      if (isPastDay) return;
+                      setSelectedDateStr(day.dateStr);
+                    }}
+                    className={`p-3 rounded-xl border text-center transition-all relative overflow-hidden ${
+                      isPastDay
                         ? isLight
-                          ? 'bg-emerald-600 text-white border-emerald-500 font-black shadow-md'
-                          : highContrast
-                            ? 'bg-yellow-400 text-black border-yellow-300 font-black'
-                            : 'bg-emerald-600 text-white border-emerald-400 font-black shadow-md'
-                        : isLight
-                          ? 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200'
-                          : 'bg-slate-800/80 text-slate-200 border-slate-700 hover:bg-slate-700'
+                          ? 'bg-slate-200/60 border-slate-300/80 text-slate-400 cursor-not-allowed opacity-60'
+                          : 'bg-slate-900/50 border-slate-800/80 text-slate-600 cursor-not-allowed opacity-50'
+                        : isSelected
+                          ? isLight
+                            ? 'bg-emerald-600 text-white border-emerald-500 font-black shadow-md ring-2 ring-emerald-400/40'
+                            : highContrast
+                              ? 'bg-yellow-400 text-black border-yellow-300 font-black ring-2 ring-yellow-400'
+                              : 'bg-emerald-600 text-white border-emerald-400 font-black shadow-md ring-2 ring-emerald-500/40'
+                          : isToday
+                            ? isLight
+                              ? 'bg-emerald-50 text-emerald-900 border-emerald-400 hover:bg-emerald-100 font-bold'
+                              : 'bg-emerald-950/40 text-emerald-200 border-emerald-600 hover:bg-emerald-900/60 font-bold'
+                            : isLight
+                              ? 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200'
+                              : 'bg-slate-800/80 text-slate-200 border-slate-700 hover:bg-slate-700'
                     }`}
                   >
-                    <div className="text-xs uppercase font-extrabold">{day.name}</div>
-                    <div className="text-base font-black mt-0.5">{day.formattedDay}</div>
+                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                      <span className="text-[10px] uppercase font-extrabold opacity-80">{day.name}</span>
+                      {isToday && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-500 text-white">
+                          HOY
+                        </span>
+                      )}
+                      {isPastDay && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-300 text-slate-600 dark:bg-slate-800 dark:text-slate-500">
+                          PASADO
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-base font-black">{day.formattedDay}</div>
                   </button>
                 );
               })}
@@ -646,6 +856,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 {TIME_SLOTS.filter(s => s.id <= 8).map((slot) => {
                   const isSlotSelected = selectedTimeSlotIds.includes(slot.id);
+                  const isSlotPast = isPastDate(selectedDateStr, slot.id);
                   
                   // Live status check for this specific slot
                   const slotStatus = validateResourceAvailability(
@@ -661,8 +872,18 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                     <button
                       type="button"
                       key={slot.id}
+                      disabled={isSlotPast}
                       onClick={() => {
                         try {
+                          if (isSlotPast) {
+                            setOccupiedNotice({
+                              slotLabel: slot?.label,
+                              subject: 'Módulo Pasado',
+                              course: 'Tiempo Transcurrido',
+                              message: 'Este módulo horario ya transcurrió. No es posible realizar reservas para fechas u horarios pasados.'
+                            });
+                            return;
+                          }
                           if (!slotStatus?.isAvailable) {
                             setOccupiedNotice({
                               slotLabel: slot?.label,
@@ -678,43 +899,57 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                         }
                       }}
                       className={`p-3.5 rounded-2xl border-2 text-left transition-all relative overflow-hidden ${
-                        isSlotSelected
+                        isSlotPast
                           ? isLight
-                            ? 'bg-emerald-100/90 border-emerald-600 ring-2 ring-emerald-500/40 text-slate-900 font-bold shadow-md'
-                            : highContrast
-                              ? 'bg-yellow-400 text-black border-yellow-300 ring-2 ring-yellow-400 font-bold'
-                              : 'bg-emerald-950/80 border-emerald-500 ring-2 ring-emerald-500/40 text-white shadow-md'
-                          : slotStatus.isAvailable
+                            ? 'bg-slate-100/90 border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
+                            : 'bg-slate-900/50 border-slate-800/80 text-slate-600 opacity-50 cursor-not-allowed'
+                          : isSlotSelected
                             ? isLight
-                              ? 'bg-emerald-50/50 hover:bg-emerald-100/70 border-emerald-200 text-slate-800'
-                              : 'bg-emerald-950/30 hover:bg-emerald-900/40 border-emerald-800/60 text-slate-100'
-                            : isLight
-                              ? 'bg-rose-50 hover:bg-rose-100/60 border-rose-200 text-slate-800'
-                              : 'bg-rose-950/30 border-rose-900/60 text-slate-300'
+                              ? 'bg-emerald-100/90 border-emerald-600 ring-2 ring-emerald-500/40 text-slate-900 font-bold shadow-md'
+                              : highContrast
+                                ? 'bg-yellow-400 text-black border-yellow-300 ring-2 ring-yellow-400 font-bold'
+                                : 'bg-emerald-950/80 border-emerald-500 ring-2 ring-emerald-500/40 text-white shadow-md'
+                            : slotStatus.isAvailable
+                              ? isLight
+                                ? 'bg-emerald-50/50 hover:bg-emerald-100/70 border-emerald-200 text-slate-800'
+                                : 'bg-emerald-950/30 hover:bg-emerald-900/40 border-emerald-800/60 text-slate-100'
+                              : isLight
+                                ? 'bg-rose-50 hover:bg-rose-100/60 border-rose-200 text-slate-800'
+                                : 'bg-rose-950/30 border-rose-900/60 text-slate-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className={`text-xs font-black uppercase ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+                        <span className={`text-xs font-black uppercase ${
+                          isSlotPast
+                            ? 'text-slate-400 dark:text-slate-600'
+                            : isLight ? 'text-slate-700' : 'text-slate-200'
+                        }`}>
                           {slot.label}
                         </span>
                         <div className="flex items-center gap-1.5">
                           <span className={`w-2.5 h-2.5 rounded-full ${
-                            slotStatus.isAvailable ? 'bg-emerald-500 shadow-sm shadow-emerald-400' : 'bg-rose-500'
+                            isSlotPast
+                              ? 'bg-slate-400 dark:bg-slate-700'
+                              : slotStatus.isAvailable ? 'bg-emerald-500 shadow-sm shadow-emerald-400' : 'bg-rose-500'
                           }`} />
                           {isSlotSelected ? (
                             <CheckSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                           ) : (
-                            <Square className="w-4 h-4 text-slate-400/80" />
+                            <Square className={`w-4 h-4 ${isSlotPast ? 'text-slate-300 dark:text-slate-700' : 'text-slate-400/80'}`} />
                           )}
                         </div>
                       </div>
 
-                      <div className="text-sm font-black mt-1">
+                      <div className={`text-sm font-black mt-1 ${isSlotPast ? 'text-slate-400 dark:text-slate-600' : ''}`}>
                         {slot.startTime} - {slot.endTime} hs
                       </div>
 
                       <div className="mt-2 text-[11px] font-semibold truncate flex items-center justify-between">
-                        {isSlotSelected ? (
+                        {isSlotPast ? (
+                          <span className="font-bold text-slate-400 dark:text-slate-600 flex items-center gap-1">
+                            🕒 Pasado
+                          </span>
+                        ) : isSlotSelected ? (
                           <span className={`font-black flex items-center gap-1 ${
                             isLight ? 'text-emerald-800' : 'text-emerald-300'
                           }`}>
@@ -749,6 +984,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 {TIME_SLOTS.filter(s => s.id >= 9).map((slot) => {
                   const isSlotSelected = selectedTimeSlotIds.includes(slot.id);
+                  const isSlotPast = isPastDate(selectedDateStr, slot.id);
                   
                   // Live status check for this specific slot
                   const slotStatus = validateResourceAvailability(
@@ -764,8 +1000,18 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                     <button
                       type="button"
                       key={slot.id}
+                      disabled={isSlotPast}
                       onClick={() => {
                         try {
+                          if (isSlotPast) {
+                            setOccupiedNotice({
+                              slotLabel: slot?.label,
+                              subject: 'Módulo Pasado',
+                              course: 'Tiempo Transcurrido',
+                              message: 'Este módulo horario ya transcurrió. No es posible realizar reservas para fechas u horarios pasados.'
+                            });
+                            return;
+                          }
                           if (!slotStatus?.isAvailable) {
                             setOccupiedNotice({
                               slotLabel: slot?.label,
@@ -781,43 +1027,57 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                         }
                       }}
                       className={`p-3.5 rounded-2xl border-2 text-left transition-all relative overflow-hidden ${
-                        isSlotSelected
+                        isSlotPast
                           ? isLight
-                            ? 'bg-emerald-100/90 border-emerald-600 ring-2 ring-emerald-500/40 text-slate-900 font-bold shadow-md'
-                            : highContrast
-                              ? 'bg-yellow-400 text-black border-yellow-300 ring-2 ring-yellow-400 font-bold'
-                              : 'bg-emerald-950/80 border-emerald-500 ring-2 ring-emerald-500/40 text-white shadow-md'
-                          : slotStatus.isAvailable
+                            ? 'bg-slate-100/90 border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
+                            : 'bg-slate-900/50 border-slate-800/80 text-slate-600 opacity-50 cursor-not-allowed'
+                          : isSlotSelected
                             ? isLight
-                              ? 'bg-emerald-50/50 hover:bg-emerald-100/70 border-emerald-200 text-slate-800'
-                              : 'bg-emerald-950/30 hover:bg-emerald-900/40 border-emerald-800/60 text-slate-100'
-                            : isLight
-                              ? 'bg-rose-50 hover:bg-rose-100/60 border-rose-200 text-slate-800'
-                              : 'bg-rose-950/30 border-rose-900/60 text-slate-300'
+                              ? 'bg-emerald-100/90 border-emerald-600 ring-2 ring-emerald-500/40 text-slate-900 font-bold shadow-md'
+                              : highContrast
+                                ? 'bg-yellow-400 text-black border-yellow-300 ring-2 ring-yellow-400 font-bold'
+                                : 'bg-emerald-950/80 border-emerald-500 ring-2 ring-emerald-500/40 text-white shadow-md'
+                            : slotStatus.isAvailable
+                              ? isLight
+                                ? 'bg-emerald-50/50 hover:bg-emerald-100/70 border-emerald-200 text-slate-800'
+                                : 'bg-emerald-950/30 hover:bg-emerald-900/40 border-emerald-800/60 text-slate-100'
+                              : isLight
+                                ? 'bg-rose-50 hover:bg-rose-100/60 border-rose-200 text-slate-800'
+                                : 'bg-rose-950/30 border-rose-900/60 text-slate-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className={`text-xs font-black uppercase ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+                        <span className={`text-xs font-black uppercase ${
+                          isSlotPast
+                            ? 'text-slate-400 dark:text-slate-600'
+                            : isLight ? 'text-slate-700' : 'text-slate-200'
+                        }`}>
                           {slot.label}
                         </span>
                         <div className="flex items-center gap-1.5">
                           <span className={`w-2.5 h-2.5 rounded-full ${
-                            slotStatus.isAvailable ? 'bg-emerald-500 shadow-sm shadow-emerald-400' : 'bg-rose-500'
+                            isSlotPast
+                              ? 'bg-slate-400 dark:bg-slate-700'
+                              : slotStatus.isAvailable ? 'bg-emerald-500 shadow-sm shadow-emerald-400' : 'bg-rose-500'
                           }`} />
                           {isSlotSelected ? (
                             <CheckSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                           ) : (
-                            <Square className="w-4 h-4 text-slate-400/80" />
+                            <Square className={`w-4 h-4 ${isSlotPast ? 'text-slate-300 dark:text-slate-700' : 'text-slate-400/80'}`} />
                           )}
                         </div>
                       </div>
 
-                      <div className="text-sm font-black mt-1">
+                      <div className={`text-sm font-black mt-1 ${isSlotPast ? 'text-slate-400 dark:text-slate-600' : ''}`}>
                         {slot.startTime} - {slot.endTime} hs
                       </div>
 
                       <div className="mt-2 text-[11px] font-semibold truncate flex items-center justify-between">
-                        {isSlotSelected ? (
+                        {isSlotPast ? (
+                          <span className="font-bold text-slate-400 dark:text-slate-600 flex items-center gap-1">
+                            🕒 Pasado
+                          </span>
+                        ) : isSlotSelected ? (
                           <span className={`font-black flex items-center gap-1 ${
                             isLight ? 'text-emerald-800' : 'text-emerald-300'
                           }`}>
