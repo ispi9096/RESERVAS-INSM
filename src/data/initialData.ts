@@ -206,17 +206,6 @@ export function generateSampleReservationsForCurrentWeek(): Reservation[] {
 
   return [
     {
-      id: 'res-101',
-      resourceId: 'proyector_2',
-      date: getDateStr(1), // Martes
-      dayOfWeek: 2,
-      timeSlotId: 1,
-      course: '5º Año Nat',
-      subject: 'Biología Celular',
-      createdAt: new Date().toISOString(),
-      notes: 'Presentación de diapositivas sobre genética'
-    },
-    {
       id: 'res-102',
       resourceId: 'sala_computacion',
       date: getDateStr(2), // Miércoles
@@ -226,17 +215,6 @@ export function generateSampleReservationsForCurrentWeek(): Reservation[] {
       subject: 'Matemática con GeoGebra',
       createdAt: new Date().toISOString(),
       notes: 'Modelado gráfico de funciones'
-    },
-    {
-      id: 'res-103',
-      resourceId: 'proyector_1',
-      date: getDateStr(3), // Jueves
-      dayOfWeek: 4,
-      timeSlotId: 3,
-      course: '2º Año A',
-      subject: 'Lengua y Literatura',
-      createdAt: new Date().toISOString(),
-      notes: 'Proyección de obra de teatro clasicista'
     }
   ];
 }
