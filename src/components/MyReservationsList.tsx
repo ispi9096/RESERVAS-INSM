@@ -10,7 +10,8 @@ import {
   PlusCircle,
   AlertCircle,
   User,
-  Globe
+  Globe,
+  Eraser
 } from 'lucide-react';
 import { Reservation } from '../types';
 import { INITIAL_RESOURCES, TIME_SLOTS } from '../data/initialData';
@@ -21,6 +22,7 @@ interface MyReservationsListProps {
   reservations: Reservation[];
   onCancelReservation: (id: string) => void;
   onResetData: () => void;
+  onClearAllReservations?: () => void;
   onNewReservation: () => void;
   lightMode?: boolean;
   highContrast?: boolean;
@@ -30,6 +32,7 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
   reservations,
   onCancelReservation,
   onResetData,
+  onClearAllReservations,
   onNewReservation,
   lightMode = false,
   highContrast = false
@@ -39,6 +42,7 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [reservationToCancel, setReservationToCancel] = useState<Reservation | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Current user ID stored in localStorage
   const currentUserId = React.useMemo(() => getOrCreateUserId(), []);
@@ -112,6 +116,21 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
             <PlusCircle className="w-4 h-4" />
             <span>Nueva Reserva</span>
           </button>
+
+          {onClearAllReservations && (
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              className={`px-3 py-2.5 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5 ${
+                isLight
+                  ? 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300'
+                  : 'bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border-rose-800'
+              }`}
+              title="Eliminar todas las reservas del sistema (dejar en 0)"
+            >
+              <Eraser className="w-4 h-4 text-rose-500" />
+              <span>Vaciar Sistema (0)</span>
+            </button>
+          )}
 
           <button
             onClick={() => setShowResetConfirm(true)}
@@ -416,6 +435,59 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
                 className="flex-1 py-2.5 px-4 rounded-xl font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
               >
                 Sí, Restablecer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOM CONFIRMATION DIALOG MODAL FOR CLEARING ALL RESERVATIONS TO ZERO */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`w-full max-w-md rounded-3xl p-6 border shadow-2xl space-y-4 ${
+            isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-100'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className={`p-3 rounded-2xl ${isLight ? 'bg-rose-100 text-rose-700' : 'bg-rose-950/80 text-rose-400 border border-rose-800'}`}>
+                <Eraser className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className={`text-lg font-black ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  ¿Vaciar todas las reservas?
+                </h3>
+                <p className={`text-xs font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Esta acción eliminará <strong>todas</strong> las reservas registradas en Firestore y en la memoria local. La lista de todos los recursos (Proyectores, Sala de Robótica y Computación) quedará en cero (0).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(false)}
+                className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-xs border ${
+                  isLight
+                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                }`}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await onClearAllReservations?.();
+                  } catch (e) {
+                    console.error('Error clearing reservations:', e);
+                  } finally {
+                    setShowClearConfirm(false);
+                  }
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl font-black text-xs bg-rose-600 hover:bg-rose-700 text-white shadow-md flex items-center justify-center gap-1.5"
+              >
+                <Eraser className="w-4 h-4" />
+                <span>Sí, Vaciar Todo (0)</span>
               </button>
             </div>
           </div>

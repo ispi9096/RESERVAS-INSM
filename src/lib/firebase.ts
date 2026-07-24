@@ -263,6 +263,41 @@ export async function updateReservationInDb(id: string, updates: Partial<Reserva
 }
 
 /**
+ * Clear/delete all reservations from Firestore and localStorage, leaving 0 reservations in system.
+ */
+export async function clearAllReservationsFromDb(): Promise<void> {
+  // Prevent auto-seeding sample reservations when database becomes empty
+  localStorage.setItem('app_has_seeded_reservations', 'true');
+  
+  try {
+    localStorage.setItem('app_cached_reservations', '[]');
+    localStorage.setItem('app_my_reservation_ids', '[]');
+  } catch (e) {
+    console.error('Error resetting cached reservations in localStorage:', e);
+  }
+
+  try {
+    const colRef = collection(db, RESERVATIONS_COLLECTION);
+    const snapshot = await getDocs(colRef);
+    if (!snapshot.empty) {
+      const docs = snapshot.docs;
+      // Delete in chunks of 400 to respect Firestore batch limit
+      for (let i = 0; i < docs.length; i += 400) {
+        const chunk = docs.slice(i, i + 400);
+        const batch = writeBatch(db);
+        chunk.forEach((docSnap) => {
+          batch.delete(docSnap.ref);
+        });
+        await batch.commit();
+      }
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, RESERVATIONS_COLLECTION);
+    throw error;
+  }
+}
+
+/**
  * Delete a reservation from Firestore
  */
 export async function deleteReservationFromDb(id: string): Promise<void> {
