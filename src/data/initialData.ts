@@ -375,6 +375,10 @@ export const INITIAL_FIXED_SCHEDULES: FixedSchedule[] = [
   { id: 'fix-10', resourceId: 'sala_robotica', dayOfWeek: 4, timeSlotId: 1, subject: 'Tecnología', course: '2º Año B', notes: 'Clase curricular semanal fija' },
   { id: 'fix-11', resourceId: 'sala_computacion', dayOfWeek: 4, timeSlotId: 2, subject: 'Tecnología', course: '2º Año B', notes: 'Clase curricular semanal fija' },
   { id: 'fix-12', resourceId: 'sala_robotica', dayOfWeek: 4, timeSlotId: 2, subject: 'Tecnología', course: '2º Año B', notes: 'Clase curricular semanal fija' },
+
+  // Matemática — 3º Año: Viernes (5), Módulos 1 y 2 (Sala de Computación)
+  { id: 'fix-13', resourceId: 'sala_computacion', dayOfWeek: 5, timeSlotId: 1, subject: 'Matemática', course: '3° Año', notes: 'Clase curricular semanal fija' },
+  { id: 'fix-14', resourceId: 'sala_computacion', dayOfWeek: 5, timeSlotId: 2, subject: 'Matemática', course: '3° Año', notes: 'Clase curricular semanal fija' },
 ];
 
 // Helper to get current week's Monday in YYYY-MM-DD

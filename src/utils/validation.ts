@@ -38,7 +38,7 @@ function isSpecificResourceBooked(
   if (fixed) {
     return {
       isAvailable: false,
-      message: `🔒 Horario Fijo Curricular: ${fixed?.subject || 'Materia'} - ${fixed?.course || 'Curso'}`,
+      message: `🔒 Ocupado - Curricular (${fixed?.subject || 'Materia'} ${fixed?.course || 'Curso'})`,
       course: fixed?.course || '',
       subject: fixed?.subject || '',
       isFixed: true,

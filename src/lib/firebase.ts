@@ -239,6 +239,20 @@ export function subscribeToFixedSchedules(callback: (schedules: FixedSchedule[])
       });
     });
 
+    // Automatically sync any newly added initial fixed schedules into Firestore if missing
+    const missingInitial = INITIAL_FIXED_SCHEDULES.filter(
+      (init) => !schedulesList.some((s) => s.id === init.id)
+    );
+    if (missingInitial.length > 0) {
+      const batch = writeBatch(db);
+      missingInitial.forEach((sched) => {
+        const docRef = doc(db, FIXED_SCHEDULES_COLLECTION, sched.id);
+        batch.set(docRef, sched);
+        schedulesList.push(sched);
+      });
+      batch.commit().catch(() => {});
+    }
+
     try {
       localStorage.setItem('app_cached_fixed_schedules', JSON.stringify(schedulesList));
     } catch (e) {

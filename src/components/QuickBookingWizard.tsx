@@ -1048,7 +1048,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                           <span className={isLight ? 'text-emerald-700' : 'text-emerald-400'}>🟢 Disponible</span>
                         ) : (
                           <span className={`font-bold ${isLight ? 'text-rose-700' : 'text-rose-400'}`}>
-                            {slotStatus.isFixed ? '🔒 Curricular' : '🔴 Ocupado'}
+                            {slotStatus.isFixed ? `🔒 Ocupado - Curricular (${slotStatus.subject} ${slotStatus.course})` : '🔴 Ocupado'}
                           </span>
                         )}
                       </div>
@@ -1176,7 +1176,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                           <span className={isLight ? 'text-emerald-700' : 'text-emerald-400'}>🟢 Disponible</span>
                         ) : (
                           <span className={`font-bold ${isLight ? 'text-rose-700' : 'text-rose-400'}`}>
-                            {slotStatus.isFixed ? '🔒 Curricular' : '🔴 Ocupado'}
+                            {slotStatus.isFixed ? `🔒 Ocupado - Curricular (${slotStatus.subject} ${slotStatus.course})` : '🔴 Ocupado'}
                           </span>
                         )}
                       </div>
