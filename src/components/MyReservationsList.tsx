@@ -6,12 +6,9 @@ import {
   Projector, 
   Bot, 
   Monitor, 
-  RotateCcw,
   PlusCircle,
   AlertCircle,
   User,
-  UserCheck,
-  Users,
   Globe
 } from 'lucide-react';
 import { Reservation } from '../types';
@@ -40,7 +37,6 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
   const [filterScope, setFilterScope] = useState<'mine' | 'all'>('mine');
   const [searchQuery, setSearchQuery] = useState('');
   const [reservationToCancel, setReservationToCancel] = useState<Reservation | null>(null);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Teacher name or email stored in localStorage or entered in UI
   const [teacherIdentity, setTeacherIdentity] = useState<string>(() => {
@@ -135,18 +131,6 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
             <PlusCircle className="w-4 h-4" />
             <span>Nueva Reserva</span>
           </button>
-
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            className={`p-2.5 rounded-xl border transition-colors ${
-              isLight
-                ? 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border-slate-300'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border-slate-700'
-            }`}
-            title="Restablecer datos de ejemplo"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
@@ -218,21 +202,23 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
         </div>
       )}
 
-      {/* Search Input Bar */}
-      <div className="relative">
-        <Search className={`w-5 h-5 absolute left-3.5 top-3.5 ${isLight ? 'text-slate-400' : 'text-slate-400'}`} />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Buscar por materia, curso o fecha..."
-          className={`w-full pl-11 pr-4 py-3 rounded-2xl border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors ${
-            isLight
-              ? 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 shadow-sm'
-              : 'bg-slate-900 border-slate-800 text-slate-100 placeholder-slate-500'
-          }`}
-        />
-      </div>
+      {/* Search Input Bar (Visible only in 'Todas las Reservas') */}
+      {filterScope === 'all' && (
+        <div className="relative">
+          <Search className={`w-5 h-5 absolute left-3.5 top-3.5 ${isLight ? 'text-slate-400' : 'text-slate-400'}`} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar por materia, curso o fecha..."
+            className={`w-full pl-11 pr-4 py-3 rounded-2xl border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors ${
+              isLight
+                ? 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 shadow-sm'
+                : 'bg-slate-900 border-slate-800 text-slate-100 placeholder-slate-500'
+            }`}
+          />
+        </div>
+      )}
 
       {/* List Grid */}
       {filtered.length === 0 ? (
@@ -441,53 +427,6 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
           </div>
         );
       })()}
-
-      {/* CUSTOM CONFIRMATION DIALOG MODAL FOR RESETTING DATA */}
-      {showResetConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className={`w-full max-w-md rounded-3xl p-6 border shadow-2xl space-y-4 ${
-            isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-100'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-2xl ${isLight ? 'bg-amber-100 text-amber-700' : 'bg-amber-950/80 text-amber-400 border border-amber-800'}`}>
-                <RotateCcw className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className={`text-lg font-black ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                  ¿Restablecer reservas de ejemplo?
-                </h3>
-                <p className={`text-xs font-medium ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  Se restaurará el listado de reservas iniciales para esta semana.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowResetConfirm(false)}
-                className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-xs border ${
-                  isLight
-                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                }`}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onResetData();
-                  setShowResetConfirm(false);
-                }}
-                className="flex-1 py-2.5 px-4 rounded-xl font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
-              >
-                Sí, Restablecer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );
