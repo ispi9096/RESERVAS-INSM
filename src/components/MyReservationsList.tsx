@@ -10,6 +10,8 @@ import {
   PlusCircle,
   AlertCircle,
   User,
+  UserCheck,
+  Users,
   Globe
 } from 'lucide-react';
 import { Reservation } from '../types';
@@ -45,19 +47,22 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
     return (
       localStorage.getItem('app_teacher_name') ||
       localStorage.getItem('app_teacher_identity') ||
-      localStorage.getItem('app_creator_id') ||
-      localStorage.getItem('app_user_id') ||
       ''
     );
   });
+
+  const updateTeacherIdentity = (val: string) => {
+    setTeacherIdentity(val);
+    localStorage.setItem('app_teacher_name', val);
+    localStorage.setItem('app_teacher_identity', val);
+    window.dispatchEvent(new Event('app_teacher_identity_changed'));
+  };
 
   useEffect(() => {
     const syncIdentity = () => {
       const current = (
         localStorage.getItem('app_teacher_name') ||
         localStorage.getItem('app_teacher_identity') ||
-        localStorage.getItem('app_creator_id') ||
-        localStorage.getItem('app_user_id') ||
         ''
       );
       setTeacherIdentity(current);
@@ -71,19 +76,7 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
     };
   }, []);
 
-  // Current user ID stored in localStorage fallback
-  const currentUserId = React.useMemo(() => getOrCreateUserId(), []);
-
-  // Get user's own reservation IDs from localStorage
-  const myReservationIds = React.useMemo<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('app_my_reservation_ids') || '[]');
-    } catch {
-      return [];
-    }
-  }, [reservations]);
-
-  // Helper to determine if a reservation belongs to current user
+  // Helper to determine if a reservation belongs to active teacher
   const isMyReservation = React.useCallback((r: Reservation) => {
     return isReservationMine(r, teacherIdentity);
   }, [teacherIdentity]);
@@ -190,33 +183,37 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
         </button>
       </div>
 
-      {/* Teacher Identity Filter Bar for Mis Reservas */}
+      {/* Campo Único e Individual en 'Mis Reservas' para Filtrado Privado */}
       {filterScope === 'mine' && (
-        <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-          isLight ? 'bg-amber-50/90 border-amber-200 text-amber-900 shadow-sm' : 'bg-amber-950/40 border-amber-800/60 text-amber-200'
+        <div className={`p-4 rounded-2xl border shadow-sm transition-all ${
+          isLight 
+            ? 'bg-amber-50/80 border-amber-200 text-amber-950' 
+            : 'bg-amber-950/30 border-amber-800/60 text-amber-100'
         }`}>
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-600 shrink-0">
-            <User className="w-4 h-4 text-amber-500" />
-            <span>Docente Identificado:</span>
-          </div>
-          <div className="flex-1 max-w-md">
-            <input
-              type="text"
-              value={teacherIdentity}
-              onChange={(e) => {
-                const val = e.target.value;
-                setTeacherIdentity(val);
-                localStorage.setItem('app_teacher_name', val);
-                localStorage.setItem('app_teacher_identity', val);
-                localStorage.setItem('app_creator_id', val);
-                localStorage.setItem('app_user_id', val);
-                window.dispatchEvent(new Event('app_teacher_identity_changed'));
-              }}
-              placeholder="Ingresa tu Nombre/Apellido o Email..."
-              className={`w-full px-3.5 py-2 rounded-xl border text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                isLight ? 'bg-white border-amber-300 text-slate-900 placeholder-slate-400' : 'bg-slate-900 border-amber-700 text-slate-100 placeholder-slate-500'
-              }`}
-            />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                <User className="w-5 h-5" />
+              </div>
+              <label htmlFor="teacher-identity-input" className="text-xs sm:text-sm font-extrabold tracking-tight">
+                Ingresa tu Nombre / Apellido:
+              </label>
+            </div>
+
+            <div className="relative flex-1 max-w-md">
+              <input
+                id="teacher-identity-input"
+                type="text"
+                value={teacherIdentity}
+                onChange={(e) => updateTeacherIdentity(e.target.value)}
+                placeholder="Ej. Juan, Silvina..."
+                className={`w-full px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                  isLight 
+                    ? 'bg-white border-amber-300 text-slate-900 placeholder-slate-400' 
+                    : 'bg-slate-900 border-amber-700 text-slate-100 placeholder-slate-500'
+                }`}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -244,17 +241,21 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
         }`}>
           <AlertCircle className={`w-12 h-12 mx-auto ${isLight ? 'text-slate-400' : 'text-slate-500'}`} />
           <h3 className={`text-lg font-bold ${isLight ? 'text-slate-800' : 'text-slate-300'}`}>
-            No se encontraron reservas
+            {filterScope === 'mine' && teacherIdentity 
+              ? `No hay reservas confirmadas para "${teacherIdentity}"`
+              : 'No se encontraron reservas'}
           </h3>
           <p className={`text-xs max-w-md mx-auto ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-            No hay reservas registradas que coincidan con la búsqueda.
+            {filterScope === 'mine' && teacherIdentity 
+              ? `No se han registrado reservas asociadas al perfil de ${teacherIdentity}. Puedes seleccionar otro docente arriba o crear una nueva reserva.`
+              : 'No hay reservas registradas que coincidan con la búsqueda.'}
           </p>
           <button
             onClick={onNewReservation}
             className="mt-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-2 transition-colors"
           >
             <PlusCircle className="w-4 h-4" />
-            Crear nueva reserva en 3 clics
+            <span>Crear nueva reserva {teacherIdentity ? `para ${teacherIdentity}` : 'en 3 clics'}</span>
           </button>
         </div>
       ) : (

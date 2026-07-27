@@ -17,39 +17,41 @@ export function getOrCreateUserId(): string {
 export function isReservationMine(r: Reservation, overrideIdentity?: string): boolean {
   if (!r) return false;
 
-  const currentUserId = getOrCreateUserId();
-  const currentSavedIdentity = (
-    overrideIdentity ||
-    localStorage.getItem('app_teacher_name') ||
-    localStorage.getItem('app_teacher_identity') ||
-    localStorage.getItem('app_creator_id') ||
-    localStorage.getItem('app_user_id') ||
-    currentUserId
-  ).trim().toLowerCase();
+  const identityRaw = (
+    overrideIdentity !== undefined
+      ? overrideIdentity
+      : localStorage.getItem('app_teacher_name') ||
+        localStorage.getItem('app_teacher_identity') ||
+        ''
+  );
 
-  let myReservationIds: string[] = [];
-  try {
-    myReservationIds = JSON.parse(localStorage.getItem('app_my_reservation_ids') || '[]');
-  } catch {
-    myReservationIds = [];
+  const currentSavedIdentity = identityRaw.trim().toLowerCase();
+
+  // Strict private filtering: only match if a teacher name/surname is entered in the input field
+  if (currentSavedIdentity.length > 0) {
+    const rCreatedBy = (r.createdBy || '').trim().toLowerCase();
+    const rUserId = (r.userId || '').trim().toLowerCase();
+
+    const isMatchByCreatedBy = Boolean(
+      rCreatedBy && (
+        rCreatedBy === currentSavedIdentity || 
+        rCreatedBy.includes(currentSavedIdentity) || 
+        currentSavedIdentity.includes(rCreatedBy)
+      )
+    );
+    const isMatchByUserId = Boolean(
+      rUserId && (
+        rUserId === currentSavedIdentity || 
+        rUserId.includes(currentSavedIdentity) || 
+        currentSavedIdentity.includes(rUserId)
+      )
+    );
+
+    return isMatchByCreatedBy || isMatchByUserId;
   }
 
-  const isOwnerByLocalStorageList = myReservationIds.includes(r.id);
-  if (isOwnerByLocalStorageList) return true;
-
-  if (!currentSavedIdentity) return false;
-
-  const rCreatedBy = (r.createdBy || '').trim().toLowerCase();
-  const rUserId = (r.userId || '').trim().toLowerCase();
-
-  const isMatchByCreatedBy = Boolean(
-    rCreatedBy && (rCreatedBy === currentSavedIdentity || rCreatedBy.includes(currentSavedIdentity) || currentSavedIdentity.includes(rCreatedBy))
-  );
-  const isMatchByUserId = Boolean(
-    rUserId && (rUserId === currentSavedIdentity || rUserId.includes(currentSavedIdentity) || currentSavedIdentity.includes(rUserId))
-  );
-
-  return isMatchByCreatedBy || isMatchByUserId;
+  // If no teacher name is typed in the field, return false for private filtering
+  return false;
 }
 
 export function getMyReservationsCount(reservations: Reservation[], overrideIdentity?: string): number {

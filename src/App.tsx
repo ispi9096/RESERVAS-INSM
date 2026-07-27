@@ -33,7 +33,9 @@ export default function App() {
 
   // Accessibility States
   const [lightMode, setLightMode] = useState<boolean>(() => {
-    return localStorage.getItem('app_light_mode') === 'true' || localStorage.getItem('app_high_contrast') === 'true';
+    const saved = localStorage.getItem('app_light_mode');
+    if (saved !== null) return saved === 'true';
+    return true; // Default to Light Mode
   });
 
   const [fontSize, setFontSize] = useState<'normal' | 'large' | 'xlarge'>(() => {
