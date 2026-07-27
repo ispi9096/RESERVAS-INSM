@@ -206,7 +206,7 @@ export const MyReservationsList: React.FC<MyReservationsListProps> = ({
                 type="text"
                 value={teacherIdentity}
                 onChange={(e) => updateTeacherIdentity(e.target.value)}
-                placeholder="Ej. Juan, Silvina..."
+                placeholder="Ej: Catalina, Roberto..."
                 className={`w-full px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 ${
                   isLight 
                     ? 'bg-white border-amber-300 text-slate-900 placeholder-slate-400' 
