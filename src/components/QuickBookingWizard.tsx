@@ -385,14 +385,15 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
       ''
     );
   });
-  const [course, setCourse] = useState<string>(INSTITUTIONAL_COURSES[0]);
-  const availableSubjects = useMemo(() => getSubjectsForCourse(course), [course]);
-  const [subject, setSubject] = useState<string>(() => getSubjectsForCourse(INSTITUTIONAL_COURSES[0])[0] || '');
+  const [course, setCourse] = useState<string>('');
+  const availableSubjects = useMemo(() => course ? getSubjectsForCourse(course) : [], [course]);
+  const [subject, setSubject] = useState<string>('');
   const [subjectSearch, setSubjectSearch] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
 
   // Level Detection Helper
   const detectLevelFromCourse = (courseName: string): string => {
+    if (!courseName) return 'SIN SELECCIONAR';
     const normalized = courseName.toLowerCase();
     if (normalized.includes('inicial') || normalized.includes('sala')) {
       return 'NIVEL INICIAL';
@@ -419,9 +420,11 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   const handleCourseChange = (newCourse: string) => {
     setCourse(newCourse);
     setSubjectSearch('');
-    const newSubjects = getSubjectsForCourse(newCourse);
+    const newSubjects = newCourse ? getSubjectsForCourse(newCourse) : [];
     if (newSubjects.length > 0) {
       setSubject(newSubjects[0]);
+    } else {
+      setSubject('');
     }
   };
 
@@ -1343,12 +1346,16 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                 <span className="text-[10px] text-sky-600 font-extrabold bg-sky-100 px-2 py-0.5 rounded border border-sky-300">Obligatorio</span>
               </label>
               <select
+                required
                 value={course}
                 onChange={(e) => handleCourseChange(e.target.value)}
                 className={`w-full px-4 py-3 rounded-xl border-2 font-bold text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-sky-400 ${
-                  isLight ? 'bg-white border-sky-500 text-slate-900' : 'bg-slate-800 border-sky-500/80 text-slate-100'
+                  isLight 
+                    ? course ? 'bg-white border-sky-500 text-slate-900' : 'bg-white border-sky-400 text-slate-500' 
+                    : course ? 'bg-slate-800 border-sky-500/80 text-slate-100' : 'bg-slate-800 border-sky-700 text-slate-400'
                 }`}
               >
+                <option value="" disabled hidden className="text-slate-400">Seleccionar Curso / Año...</option>
                 {INSTITUTIONAL_COURSES.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
@@ -1375,9 +1382,16 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className={`w-full px-4 py-3 rounded-xl border-2 font-black text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
-                  isLight ? 'bg-white border-emerald-500 text-slate-900' : 'bg-slate-800 border-emerald-500/80 text-slate-100'
+                  isLight 
+                    ? subject ? 'bg-white border-emerald-500 text-slate-900' : 'bg-white border-emerald-300 text-slate-500' 
+                    : subject ? 'bg-slate-800 border-emerald-500/80 text-slate-100' : 'bg-slate-800 border-emerald-700 text-slate-400'
                 }`}
               >
+                {!subject && (
+                  <option value="" disabled hidden className="text-slate-400">
+                    {course ? 'Seleccionar Materia / Asignatura...' : 'Selecciona un curso primero...'}
+                  </option>
+                )}
                 {displaySubjects.map((s) => (
                   <option key={s} value={s}>
                     {s}
