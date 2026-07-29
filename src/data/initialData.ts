@@ -74,15 +74,15 @@ export const INSTITUTIONAL_COURSES = [
   '1º Año B (Secundario)',
   '2º Año A (Secundario)',
   '2º Año B (Secundario)',
+  '3º Unificado (Secundario)',
   '3º Año Nat (Secundario)',
   '3º Año Soc (Secundario)',
-  '3º Unificado (Secundario)',
+  '4º Unificado (Secundario)',
   '4º Año Nat (Secundario)',
   '4º Año Soc (Secundario)',
-  '4º Unificado (Secundario)',
+  '5º Unificado (Secundario)',
   '5º Año Nat (Secundario)',
   '5º Año Soc (Secundario)',
-  '5º Unificado (Secundario)',
   '1º Grado (Primario)',
   '2º Grado (Primario)',
   '3º Grado (Primario)',
@@ -242,39 +242,38 @@ export function getSubjectsForCourse(courseName: string): string[] {
   if (!courseName) return SUBJECTS_BY_COURSE['1º Año A (Secundario)'];
 
   const lower = courseName.toLowerCase();
-  const normalize = (list: string[]) => Array.from(new Set(list));
 
   // 3º Año
   if (lower.includes('3º') && (lower.includes('nat') || lower.includes('3n'))) {
-    return normalize([...(SUBJECTS_BY_COURSE['3º Unificado (Secundario)'] || []), ...(SUBJECTS_BY_COURSE['3º Año Nat (Secundario)'] || [])]);
+    return SUBJECTS_BY_COURSE['3º Año Nat (Secundario)'];
   }
   if (lower.includes('3º') && (lower.includes('soc') || lower.includes('3s'))) {
-    return normalize([...(SUBJECTS_BY_COURSE['3º Unificado (Secundario)'] || []), ...(SUBJECTS_BY_COURSE['3º Año Soc (Secundario)'] || [])]);
+    return SUBJECTS_BY_COURSE['3º Año Soc (Secundario)'];
   }
   if (lower.includes('3º') && lower.includes('unificado')) {
-    return SUBJECTS_BY_COURSE['3º Unificado (Secundario)'] || [];
+    return SUBJECTS_BY_COURSE['3º Unificado (Secundario)'];
   }
 
   // 4º Año
   if (lower.includes('4º') && (lower.includes('nat') || lower.includes('4n'))) {
-    return normalize([...(SUBJECTS_BY_COURSE['4º Unificado (Secundario)'] || []), ...(SUBJECTS_BY_COURSE['4º Año Nat (Secundario)'] || [])]);
+    return SUBJECTS_BY_COURSE['4º Año Nat (Secundario)'];
   }
   if (lower.includes('4º') && (lower.includes('soc') || lower.includes('4s'))) {
-    return normalize([...(SUBJECTS_BY_COURSE['4º Unificado (Secundario)'] || []), ...(SUBJECTS_BY_COURSE['4º Año Soc (Secundario)'] || [])]);
+    return SUBJECTS_BY_COURSE['4º Año Soc (Secundario)'];
   }
   if (lower.includes('4º') && lower.includes('unificado')) {
-    return SUBJECTS_BY_COURSE['4º Unificado (Secundario)'] || [];
+    return SUBJECTS_BY_COURSE['4º Unificado (Secundario)'];
   }
 
   // 5º Año
   if (lower.includes('5º') && (lower.includes('nat') || lower.includes('5n'))) {
-    return normalize([...(SUBJECTS_BY_COURSE['5º Unificado (Secundario)'] || []), ...(SUBJECTS_BY_COURSE['5º Año Nat (Secundario)'] || [])]);
+    return SUBJECTS_BY_COURSE['5º Año Nat (Secundario)'];
   }
   if (lower.includes('5º') && (lower.includes('soc') || lower.includes('5s'))) {
-    return normalize([...(SUBJECTS_BY_COURSE['5º Unificado (Secundario)'] || []), ...(SUBJECTS_BY_COURSE['5º Año Soc (Secundario)'] || [])]);
+    return SUBJECTS_BY_COURSE['5º Año Soc (Secundario)'];
   }
   if (lower.includes('5º') && lower.includes('unificado')) {
-    return SUBJECTS_BY_COURSE['5º Unificado (Secundario)'] || [];
+    return SUBJECTS_BY_COURSE['5º Unificado (Secundario)'];
   }
 
   if (SUBJECTS_BY_COURSE[courseName]) return SUBJECTS_BY_COURSE[courseName];
