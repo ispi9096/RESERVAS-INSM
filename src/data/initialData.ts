@@ -76,10 +76,13 @@ export const INSTITUTIONAL_COURSES = [
   '2º Año B (Secundario)',
   '3º Año Nat (Secundario)',
   '3º Año Soc (Secundario)',
+  '3º Unificado (Secundario)',
   '4º Año Nat (Secundario)',
   '4º Año Soc (Secundario)',
+  '4º Unificado (Secundario)',
   '5º Año Nat (Secundario)',
   '5º Año Soc (Secundario)',
+  '5º Unificado (Secundario)',
   '1º Grado (Primario)',
   '2º Grado (Primario)',
   '3º Grado (Primario)',
@@ -235,6 +238,57 @@ export const SUBJECTS_BY_COURSE: Record<string, string[]> = {
     'LENGUA EXTRANJERA (INGLÉS)',
     'MATEMÁTICA'
   ],
+  '3º Unificado (Secundario)': [
+    'BIOLOGÍA',
+    'CONSTRUCCIÓN DE CIUDADANÍA E IDENTIDAD',
+    'ECONOMÍA',
+    'EDUCACIÓN ARTÍSTICA',
+    'EDUCACIÓN FÍSICA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'FÍSICA',
+    'GEOGRAFÍA',
+    'HISTORIA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'LENGUA Y LITERATURA',
+    'MATEMÁTICA',
+    'QUÍMICA'
+  ],
+  '4º Unificado (Secundario)': [
+    'BIOLOGÍA',
+    'CIENCIAS DE LA COMUNICACIÓN',
+    'CONSTRUCCIÓN DE LA CIUDADANÍA Y PARTICIPACIÓN',
+    'EDUCACIÓN FÍSICA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'FÍSICA',
+    'GEOGRAFÍA',
+    'HISTORIA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'LENGUA Y LITERATURA',
+    'MATEMÁTICA',
+    'PSICOLOGÍA',
+    'QUÍMICA',
+    'SALUD Y ADOLESCENCIA',
+    'SOCIOLOGÍA'
+  ],
+  '5º Unificado (Secundario)': [
+    'BIOLOGÍA',
+    'CIENCIAS DE LA TIERRA',
+    'CIENCIAS POLÍTICAS',
+    'CONSTRUCCIÓN DE LA CIUDADANÍA Y DERECHO',
+    'EDUCACIÓN FÍSICA',
+    'ESPACIO DE DESARROLLO DEL IDEARIO',
+    'FILOSOFÍA',
+    'FÍSICA',
+    'GEOGRAFÍA',
+    'HISTORIA',
+    'LENGUA EXTRANJERA (INGLÉS)',
+    'LENGUA Y LITERATURA',
+    'MATEMÁTICA',
+    'ORIENTACIÓN CONTEXTOS LABORALES',
+    'QUÍMICA',
+    'SALUD Y AMBIENTE',
+    'SEMINARIO DE INVESTIGACIÓN'
+  ],
   'Sala de 3 Años (Inicial)': [
     'Espacio Curricular',
     'Expresión Corporal',
@@ -273,17 +327,26 @@ export function getSubjectsForCourse(courseName: string): string[] {
   if (lower.includes('2º año') || lower.includes('2ºa') || lower.includes('2ºb')) {
     return SUBJECTS_BY_COURSE['2º Año A (Secundario)'];
   }
+  if (lower.includes('3º') && lower.includes('unificado')) {
+    return SUBJECTS_BY_COURSE['3º Unificado (Secundario)'];
+  }
   if (lower.includes('3º') && (lower.includes('nat') || lower.includes('3n'))) {
     return SUBJECTS_BY_COURSE['3º Año Nat (Secundario)'];
   }
   if (lower.includes('3º') && (lower.includes('soc') || lower.includes('3s'))) {
     return SUBJECTS_BY_COURSE['3º Año Soc (Secundario)'];
   }
+  if (lower.includes('4º') && lower.includes('unificado')) {
+    return SUBJECTS_BY_COURSE['4º Unificado (Secundario)'];
+  }
   if (lower.includes('4º') && (lower.includes('nat') || lower.includes('4n'))) {
     return SUBJECTS_BY_COURSE['4º Año Nat (Secundario)'];
   }
   if (lower.includes('4º') && (lower.includes('soc') || lower.includes('4s'))) {
     return SUBJECTS_BY_COURSE['4º Año Soc (Secundario)'];
+  }
+  if (lower.includes('5º') && lower.includes('unificado')) {
+    return SUBJECTS_BY_COURSE['5º Unificado (Secundario)'];
   }
   if (lower.includes('5º') && (lower.includes('nat') || lower.includes('5n'))) {
     return SUBJECTS_BY_COURSE['5º Año Nat (Secundario)'];
