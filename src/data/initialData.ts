@@ -2,28 +2,6 @@ import { Resource, TimeSlot, FixedSchedule, Reservation } from '../types';
 
 export const INITIAL_RESOURCES: Resource[] = [
   {
-    id: 'proyector_1',
-    category: 'proyector',
-    name: 'Proyector 1 (Portátil)',
-    code: 'PROY-01',
-    description: 'Proyector con entrada VGA y adaptador HDMI (normal).',
-    location: 'Gabinete Técnico (Pedir en Biblioteca)',
-    capacity: 1,
-    icon: 'Projector',
-    features: ['HDMI/VGA', 'Altavoces integrados', 'Maletín de transporte']
-  },
-  {
-    id: 'proyector_2',
-    category: 'proyector',
-    name: 'Proyector 2',
-    code: 'PROY-02',
-    description: 'Proyector con entrada VGA y adaptador HDMI (normal).',
-    location: 'Gabinete Técnico (Pedir en Biblioteca)',
-    capacity: 1,
-    icon: 'Projector',
-    features: ['HDMI/VGA', 'Altavoces integrados', 'Maletín de transporte']
-  },
-  {
     id: 'sala_robotica',
     category: 'sala',
     name: 'Sala de Robótica',
@@ -44,6 +22,28 @@ export const INITIAL_RESOURCES: Resource[] = [
     capacity: 25,
     icon: 'Monitor',
     features: ['25 PCs i5 16GB', 'Internet 500Mbps', 'Acondicionador de aire', 'Proyector fijo']
+  },
+  {
+    id: 'proyector_1',
+    category: 'proyector',
+    name: 'Proyector 1 (Portátil)',
+    code: 'PROY-01',
+    description: 'Proyector con entrada VGA y adaptador HDMI (normal).',
+    location: 'Gabinete Técnico (Pedir en Biblioteca)',
+    capacity: 1,
+    icon: 'Projector',
+    features: ['HDMI/VGA', 'Altavoces integrados', 'Maletín de transporte']
+  },
+  {
+    id: 'proyector_2',
+    category: 'proyector',
+    name: 'Proyector 2',
+    code: 'PROY-02',
+    description: 'Proyector con entrada VGA y adaptador HDMI (normal).',
+    location: 'Gabinete Técnico (Pedir en Biblioteca)',
+    capacity: 1,
+    icon: 'Projector',
+    features: ['HDMI/VGA', 'Altavoces integrados', 'Maletín de transporte']
   }
 ];
 

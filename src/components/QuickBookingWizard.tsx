@@ -81,7 +81,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   }, [preselectedDate, weekDays, todayStr]);
 
   // Selected Resource & Selected Date
-  const [selectedResourceId, setSelectedResourceId] = useState<ResourceId>(preselectedResourceId || 'proyector_1');
+  const [selectedResourceId, setSelectedResourceId] = useState<ResourceId>(preselectedResourceId || 'sala_robotica');
   const [selectedDateStr, setSelectedDateStr] = useState<string>(initialDateStr);
 
   // Selected Day of Week (1 = Mon ... 5 = Fri)
@@ -175,6 +175,15 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   const [step, setStep] = useState<1 | 2 | 3>(
     preselectedResourceId && preselectedDate && preselectedTimeSlotId && isPreselectedAvailable ? 2 : 1
   );
+
+  const wizardTopRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll smoothly to the top of the wizard whenever step changes
+  useEffect(() => {
+    if (wizardTopRef.current) {
+      wizardTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [step]);
   
   // Multi-selection of time slots (e.g. [1, 2, 3])
   const [selectedTimeSlotIds, setSelectedTimeSlotIds] = useState<number[]>(() => {
@@ -558,7 +567,7 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
   };
 
   return (
-    <div className={`max-w-4xl mx-auto rounded-3xl border shadow-xl p-4 sm:p-7 ${
+    <div ref={wizardTopRef} className={`max-w-4xl mx-auto rounded-3xl border shadow-xl p-4 sm:p-7 ${
       isLight
         ? 'bg-white text-slate-800 border-slate-200 shadow-slate-200/50'
         : 'bg-slate-900 border-slate-800 text-slate-100'
@@ -654,54 +663,70 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {INITIAL_RESOURCES.map((resource) => {
               const isSelected = selectedResourceId === resource.id;
 
               return (
                 <div
                   key={resource.id}
-                  onClick={() => setSelectedResourceId(resource.id)}
-                  className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                  onClick={() => {
+                    setSelectedResourceId(resource.id);
+                    setStep(2);
+                  }}
+                  className={`p-3.5 sm:p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
                     isSelected
                       ? isLight
-                        ? 'bg-emerald-50 border-emerald-600 ring-4 ring-emerald-500/20 text-slate-900 shadow-md font-bold'
+                        ? 'bg-emerald-50 border-emerald-600 ring-2 sm:ring-4 ring-emerald-500/20 text-slate-900 shadow-md font-bold'
                         : highContrast
-                          ? 'bg-yellow-400 text-black border-yellow-300 ring-4 ring-yellow-400 font-bold'
-                          : 'bg-slate-800 border-emerald-500 ring-4 ring-emerald-500/30'
+                          ? 'bg-yellow-400 text-black border-yellow-300 ring-2 sm:ring-4 ring-yellow-400 font-bold'
+                          : 'bg-slate-800 border-emerald-500 ring-2 sm:ring-4 ring-emerald-500/30'
                       : isLight
                         ? 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 hover:border-slate-300 shadow-sm'
                         : 'bg-slate-800/60 border-slate-700 hover:border-slate-500'
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-3 rounded-xl border ${
+                  <div className="flex items-center sm:items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className={`p-2 sm:p-3 rounded-xl border shrink-0 ${
                         isLight
                           ? isSelected ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-slate-100 border-slate-200'
                           : 'bg-slate-900 border-slate-700'
                       }`}>
-                        {resource.category === 'proyector' && <Projector className={`w-7 h-7 ${isLight ? 'text-amber-600' : 'text-amber-400'}`} />}
-                        {resource.id === 'sala_robotica' && <Bot className={`w-7 h-7 ${isLight ? 'text-sky-600' : 'text-sky-400'}`} />}
-                        {resource.id === 'sala_computacion' && <Monitor className={`w-7 h-7 ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`} />}
+                        {resource.category === 'proyector' && <Projector className={`w-5 h-5 sm:w-7 sm:h-7 ${isLight ? 'text-amber-600' : 'text-amber-400'}`} />}
+                        {resource.id === 'sala_robotica' && <Bot className={`w-5 h-5 sm:w-7 sm:h-7 ${isLight ? 'text-sky-600' : 'text-sky-400'}`} />}
+                        {resource.id === 'sala_computacion' && <Monitor className={`w-5 h-5 sm:w-7 sm:h-7 ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`} />}
                       </div>
-                      <div>
-                        <span className={`text-[11px] font-black uppercase tracking-wider ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <div className="min-w-0">
+                        <span className={`text-[10px] sm:text-[11px] font-black uppercase tracking-wider block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                           {resource.code}
                         </span>
-                        <h4 className={`text-base font-black leading-snug ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
+                        <h4 className={`text-sm sm:text-base font-black leading-tight sm:leading-snug truncate sm:whitespace-normal ${isLight ? 'text-slate-900' : 'text-slate-100'}`}>
                           {resource.name}
                         </h4>
+                        <p className={`text-[11px] font-medium truncate sm:hidden ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {resource.location}
+                        </p>
                       </div>
                     </div>
-                    {isSelected && <CheckCircle2 className={`w-6 h-6 shrink-0 ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`} />}
+                    
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isSelected ? (
+                        <CheckCircle2 className={`w-5 h-5 sm:w-6 sm:h-6 ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`} />
+                      ) : (
+                        <div className="sm:hidden text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                          <span>Elegir</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <p className={`text-xs mt-3 font-medium ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                  <p className={`hidden sm:block text-xs mt-3 font-medium ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
                     {resource.description}
                   </p>
 
-                  <div className={`mt-4 pt-3 border-t flex items-center justify-between text-xs font-bold ${
+                  <div className={`hidden sm:flex mt-4 pt-3 border-t items-center justify-between text-xs font-bold ${
                     isLight ? 'border-slate-200' : 'border-slate-700/60'
                   }`}>
                     <span className={isLight ? 'text-slate-600' : 'text-slate-400'}>Ubicación: {resource.location}</span>
@@ -716,10 +741,10 @@ export const QuickBookingWizard: React.FC<QuickBookingWizardProps> = ({
             })}
           </div>
 
-          <div className="pt-4 flex justify-end">
+          <div className="pt-2 sm:pt-4 flex justify-end">
             <button
               onClick={() => setStep(2)}
-              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm flex items-center gap-2 shadow-lg shadow-emerald-900/30 transition-transform active:scale-95"
+              className="w-full sm:w-auto justify-center px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-sm flex items-center gap-2 shadow-lg shadow-emerald-900/30 transition-transform active:scale-95"
             >
               <span>Siguiente: Seleccionar Día y Módulos</span>
               <ArrowRight className="w-5 h-5" />
