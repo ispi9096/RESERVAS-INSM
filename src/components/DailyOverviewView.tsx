@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar as CalendarIcon, Clock, Projector, Bot, Monitor, Plus, CheckCircle2, AlertOctagon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ResourceId, Reservation, FixedSchedule } from '../types';
-import { INITIAL_RESOURCES, TIME_SLOTS, getMondayOfCurrentWeek } from '../data/initialData';
+import { INITIAL_RESOURCES, TIME_SLOTS, getMondayOfCurrentWeek, formatDateToYYYYMMDD } from '../data/initialData';
 import { getWeekDays, formatFriendlyDate } from '../utils/dateUtils';
 import { validateResourceAvailability } from '../utils/validation';
 
@@ -21,19 +21,50 @@ export const DailyOverviewView: React.FC<DailyOverviewViewProps> = ({
   highContrast = false
 }) => {
   const isLight = lightMode;
-  const mondayDate = useMemo(() => getMondayOfCurrentWeek(), []);
-  const weekDays = useMemo(() => getWeekDays(mondayDate), [mondayDate]);
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(() => formatDateToYYYYMMDD(new Date()));
 
-  const [selectedDateStr, setSelectedDateStr] = useState<string>(weekDays[0].dateStr);
+  const selectedDate = useMemo(() => {
+    if (!selectedDateStr) return new Date();
+    const [year, month, day] = selectedDateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }, [selectedDateStr]);
+
+  const mondayDate = useMemo(() => {
+    return getMondayOfCurrentWeek(selectedDate);
+  }, [selectedDate]);
+
+  const weekDays = useMemo(() => getWeekDays(mondayDate), [mondayDate]);
 
   const selectedDayInfo = useMemo(() => {
     return weekDays.find(d => d.dateStr === selectedDateStr) || weekDays[0];
   }, [weekDays, selectedDateStr]);
 
+  const handlePrevWeek = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() - 7);
+    setSelectedDateStr(formatDateToYYYYMMDD(d));
+  };
+
+  const handleNextWeek = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + 7);
+    setSelectedDateStr(formatDateToYYYYMMDD(d));
+  };
+
+  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value) {
+      setSelectedDateStr(e.target.value);
+    }
+  };
+
+  const handleTodayClick = () => {
+    setSelectedDateStr(formatDateToYYYYMMDD(new Date()));
+  };
+
   return (
     <div className={`space-y-6 ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>
       {/* Date Selector Header */}
-      <div className={`p-5 rounded-3xl border shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+      <div className={`p-5 rounded-3xl border shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${
         isLight ? 'bg-white border-slate-200 shadow-slate-200/50' : 'bg-slate-900 border-slate-800'
       }`}>
         <div>
@@ -46,27 +77,94 @@ export const DailyOverviewView: React.FC<DailyOverviewViewProps> = ({
           </p>
         </div>
 
-        {/* Day Selector Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {weekDays.map((day) => {
-            const isSelected = selectedDateStr === day.dateStr;
-            return (
+        {/* Date Controls & Day Selector */}
+        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3">
+          {/* Week Navigation & Date Picker */}
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            {/* Date Input (Calendario) */}
+            <input
+              type="date"
+              value={selectedDateStr}
+              onChange={handleDateInputChange}
+              className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                isLight
+                  ? 'bg-white border-slate-300 text-slate-800 hover:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500'
+                  : 'bg-slate-800 border-slate-700 text-slate-200 hover:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500'
+              }`}
+              title="Seleccionar fecha específica"
+            />
+
+            {/* Hoy Quick Button */}
+            <button
+              onClick={handleTodayClick}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+                selectedDateStr === formatDateToYYYYMMDD(new Date())
+                  ? 'bg-emerald-600 text-white border-emerald-500 font-black shadow-sm'
+                  : isLight
+                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+              }`}
+              title="Ir a hoy"
+            >
+              Hoy
+            </button>
+
+            {/* Week Prev / Next Buttons */}
+            <div className={`flex items-center gap-1 border rounded-xl p-1 ${
+              isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-800 border-slate-700'
+            }`}>
               <button
-                key={day.dateStr}
-                onClick={() => setSelectedDateStr(day.dateStr)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
-                  isSelected
-                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-md font-black'
-                    : isLight
-                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                      : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700'
+                onClick={handlePrevWeek}
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                  isLight
+                    ? 'hover:bg-white text-slate-700 hover:shadow-sm'
+                    : 'hover:bg-slate-700 text-slate-200'
                 }`}
+                title="Semana Anterior"
               >
-                <div>{day.name}</div>
-                <div className="text-sm font-extrabold">{day.formattedDay}</div>
+                <ChevronLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Anterior</span>
               </button>
-            );
-          })}
+
+              <span className={`text-xs font-bold px-0.5 ${isLight ? 'text-slate-300' : 'text-slate-600'}`}>|</span>
+
+              <button
+                onClick={handleNextWeek}
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                  isLight
+                    ? 'hover:bg-white text-slate-700 hover:shadow-sm'
+                    : 'hover:bg-slate-700 text-slate-200'
+                }`}
+                title="Semana Siguiente"
+              >
+                <span className="hidden sm:inline">Siguiente</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Day Selector Buttons */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {weekDays.map((day) => {
+              const isSelected = selectedDateStr === day.dateStr;
+              return (
+                <button
+                  key={day.dateStr}
+                  onClick={() => setSelectedDateStr(day.dateStr)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border text-center ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white border-emerald-500 shadow-md font-black'
+                      : isLight
+                        ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                        : 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700'
+                  }`}
+                >
+                  <div className="text-[10px] uppercase tracking-wider">{day.name}</div>
+                  <div className="text-xs font-extrabold">{day.formattedDay}</div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
